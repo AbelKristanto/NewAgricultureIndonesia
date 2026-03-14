@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "setup": "node --env-file=.env.local scripts/setup-db.mjs",
+    "simulate": "node --env-file=.env.local scripts/simulate.mjs",
+    "simulate:cleanup": "node --env-file=.env.local scripts/simulate.mjs --cleanup"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
