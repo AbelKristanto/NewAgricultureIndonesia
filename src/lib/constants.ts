@@ -142,3 +142,27 @@ export const MONTHS = [
   { value: '11', labelEn: 'November', labelId: 'November' },
   { value: '12', labelEn: 'December', labelId: 'Desember' },
 ];
+
+export const WEATHER_SCENARIOS = [
+  { value: 'drought', labelEn: 'Drought', labelId: 'Kekeringan' },
+  { value: 'heavy-rain', labelEn: 'Heavy Rainfall', labelId: 'Hujan Lebat' },
+  { value: 'flooding', labelEn: 'Flooding', labelId: 'Banjir' },
+  { value: 'heat-wave', labelEn: 'Heat Wave', labelId: 'Gelombang Panas' },
+  { value: 'la-nina', labelEn: 'La Nina', labelId: 'La Nina' },
+  { value: 'el-nino', labelEn: 'El Nino', labelId: 'El Nino' },
+];
+
+export const SEASONS = [
+  { value: 'wet-season', labelEn: 'Wet Season (Oct-Mar)', labelId: 'Musim Hujan (Okt-Mar)' },
+  { value: 'dry-season', labelEn: 'Dry Season (Apr-Sep)', labelId: 'Musim Kemarau (Apr-Sep)' },
+  { value: 'transition', labelEn: 'Transition Period', labelId: 'Musim Pancaroba' },
+];
+
+export const TRANSACTION_STATUSES = [
+  { value: 'draft', labelEn: 'Draft', labelId: 'Draf', color: 'secondary' },
+  { value: 'proposed', labelEn: 'Proposed', labelId: 'Diajukan', color: 'warning' },
+  { value: 'accepted', labelEn: 'Accepted', labelId: 'Diterima', color: 'primary' },
+  { value: 'in_progress', labelEn: 'In Progress', labelId: 'Berlangsung', color: 'primary' },
+  { value: 'completed', labelEn: 'Completed', labelId: 'Selesai', color: 'success' },
+  { value: 'cancelled', labelEn: 'Cancelled', labelId: 'Dibatalkan', color: 'danger' },
+] as const;

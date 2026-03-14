@@ -1,6 +1,6 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 
-type AnalysisTable = 'farmer_analyses' | 'buyer_analyses' | 'policy_analyses';
+type AnalysisTable = 'farmer_analyses' | 'buyer_analyses' | 'policy_analyses' | 'matching_analyses' | 'weather_analyses';
 
 export async function saveAnalysis(
   supabase: SupabaseClient,

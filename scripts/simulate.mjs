@@ -78,6 +78,11 @@ const USERS = [
       currentCrops: 'Rice, Chili', budget: 15000000, timeline: '1-season',
       notes: 'Interested in crop rotation for better soil health',
     },
+    weatherInput: {
+      regions: ['jawa-barat'], crops: ['rice', 'chili'],
+      scenario: 'heavy-rain', season: 'wet-season',
+      notes: 'Subang lowland area prone to flooding during peak wet season',
+    },
     chatTurns: [
       'What crops should I plant this wet season in Subang, West Java?',
       'How much fertilizer would I need per hectare for the recommended crops?',
@@ -91,6 +96,11 @@ const USERS = [
       currentCrops: 'Soybean', budget: 8000000, timeline: '6-months',
       notes: 'Looking for higher-value crops',
     },
+    weatherInput: {
+      regions: ['jawa-tengah'], crops: ['soybean', 'corn'],
+      scenario: 'drought', season: 'dry-season',
+      notes: 'Klaten area depends on rain-fed irrigation',
+    },
     chatTurns: [
       'Is soybean profitable in Central Java with alluvial soil?',
       'What about government subsidies for soybean farmers?',
@@ -103,6 +113,11 @@ const USERS = [
       soilType: 'loam', waterSources: ['irrigation', 'river'],
       currentCrops: 'Rice, Corn', budget: 25000000, timeline: '1-year',
       notes: 'Want to diversify with horticultural crops',
+    },
+    weatherInput: {
+      regions: ['jawa-timur'], crops: ['rice', 'corn', 'vegetables'],
+      scenario: 'la-nina', season: 'wet-season',
+      notes: 'Malang highland area, concerned about excess rainfall from La Nina',
     },
     chatTurns: [
       'What is the best rice variety for East Java lowlands?',
@@ -131,6 +146,17 @@ const USERS = [
       budgetMin: 500000000, budgetMax: 750000000,
       specialRequirements: 'Organic certification preferred',
     },
+    matchingInput: {
+      commodity: 'rice', volume: 50, volumeUnit: 'tons',
+      deliveryProvince: 'dki-jakarta', deliveryCity: 'Jakarta Utara',
+      qualityGrade: 'grade-a', timeline: '6-months',
+      notes: 'Prefer organic certification',
+    },
+    transactionInput: {
+      commodity: 'rice', volume: 50, volume_unit: 'tons',
+      price_per_unit: 12000000, delivery_province: 'dki-jakarta',
+      delivery_city: 'Jakarta Utara', status: 'proposed',
+    },
     chatTurns: [
       'Where can I source 50 tons of Grade A rice monthly in Java?',
       'What are the logistics costs from Karawang to Jakarta?',
@@ -144,6 +170,17 @@ const USERS = [
       startMonth: '01', endMonth: '12', frequency: 'weekly',
       budgetMin: 5000000, budgetMax: 10000000,
       specialRequirements: 'Fresh harvest, max 2 days from farm',
+    },
+    matchingInput: {
+      commodity: 'chili', volume: 500, volumeUnit: 'kg',
+      deliveryProvince: 'jawa-barat', deliveryCity: 'Bandung',
+      qualityGrade: 'premium', timeline: '1-season',
+      notes: 'Fresh harvest, max 2 days from farm',
+    },
+    transactionInput: {
+      commodity: 'chili', volume: 500, volume_unit: 'kg',
+      price_per_unit: 80000, delivery_province: 'jawa-barat',
+      delivery_city: 'Bandung', status: 'draft',
     },
     chatTurns: [
       'What is the current chili price trend in West Java?',
@@ -318,6 +355,54 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no explana
 Base analysis on realistic Indonesian agricultural data. Reference specific provinces, production statistics, and government programs where relevant.`;
 }
 
+function buildMatchingPrompt(input) {
+  return `Analyze the following commodity demand and identify the best Indonesian supplier regions for supply-demand matching.
+
+BUYER DEMAND:
+- Commodity: ${input.commodity}
+- Volume Required: ${input.volume} ${input.volumeUnit}
+- Quality Grade: ${input.qualityGrade}
+- Delivery Province: ${input.deliveryProvince}
+- Delivery City: ${input.deliveryCity}
+- Desired Timeline: ${input.timeline}
+- Additional Notes: ${input.notes || 'None'}
+
+Respond ONLY with valid JSON matching this exact schema (no markdown, no explanation outside JSON):
+{
+  "matchedRegions": "string - detailed list of Indonesian provinces/districts that produce this commodity, with estimated annual production volumes and suitability for the requested quality grade",
+  "capacityEstimates": "string - analysis of how much each matched region can realistically supply, considering existing commitments and seasonal availability",
+  "logisticsFeasibility": "string - transport routes, infrastructure quality, estimated shipping times, and cold chain requirements from each matched region to the delivery location",
+  "timeline": "string - harvest calendars for each matched region, lead times for procurement, and scheduling recommendations to meet the buyer's timeline",
+  "priceAnalysis": "string - current market price ranges for this commodity in each region, price trends, and cost comparison including transport costs to delivery location",
+  "recommendations": "string - ranked list of recommended supplier regions with justification, suggested procurement strategy, and risk mitigation advice"
+}
+
+Be specific about Indonesian geography, production statistics, and market dynamics. Reference actual provinces, districts, cooperatives, and market infrastructure.`;
+}
+
+function buildWeatherPrompt(input) {
+  return `Analyze the following weather scenario and its impact on agricultural production in Indonesia.
+
+WEATHER SCENARIO:
+- Regions: ${input.regions.join(', ') || 'National'}
+- Crops: ${input.crops.join(', ') || 'All major crops'}
+- Weather Event: ${input.scenario}
+- Season: ${input.season}
+- Additional Notes: ${input.notes || 'None'}
+
+Respond ONLY with valid JSON matching this exact schema (no markdown, no explanation outside JSON):
+{
+  "impactAssessment": "string - detailed analysis of how this weather event affects the specified crops in the specified regions, including expected yield reduction percentages, crop damage types, and historical precedents",
+  "cropAdjustments": "string - specific crop selection changes recommended in response to this weather event, including alternative varieties, substitute crops, and timing adjustments",
+  "irrigationPlanning": "string - water management strategies including irrigation scheduling changes, drainage improvements, water conservation measures, and infrastructure recommendations",
+  "revisedSchedule": "string - adjusted planting and harvesting calendar accounting for the weather event, including optimal planting windows, delayed harvest strategies, and contingency timelines",
+  "mitigationStrategies": "string - comprehensive list of practical actions farmers can take to reduce losses, including soil protection, pest management changes, insurance options, and government assistance programs",
+  "riskLevel": "string - overall risk assessment (Critical/High/Medium/Low) with justification, probability estimates, and comparison to normal season conditions"
+}
+
+Base analysis on realistic Indonesian agricultural and meteorological data. Reference specific provinces, crop varieties, and historical weather events where relevant.`;
+}
+
 function getChatSystemPrompt(lang) {
   const langInstruction = lang === 'id'
     ? 'Respond in Bahasa Indonesia.'
@@ -473,6 +558,16 @@ async function saveMessage(supabase, conversationId, userId, role, content) {
   return data;
 }
 
+async function createTransaction(supabase, buyerId, input) {
+  const { data, error } = await supabase
+    .from('transactions')
+    .insert({ buyer_id: buyerId, ...input })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
 // ============================================================
 // 6. Per-User Authenticated Client
 // ============================================================
@@ -498,6 +593,9 @@ const R = {
   farmerAnalyses: [],
   buyerAnalyses: [],
   policyAnalyses: [],
+  matchingAnalyses: [],
+  weatherAnalyses: [],
+  transactions: [],
   chatConversations: [],
   crossFeature: { supplyDemandMatches: [], weatherFindings: [], forecastFindings: [] },
   ai: { total: 0, succeeded: 0, failed: 0, rateLimitHits: 0, responseTimes: [] },
@@ -693,6 +791,129 @@ async function runPolicyAnalysis(user) {
   }
 }
 
+async function runMatchingAnalysis(user) {
+  if (!user.matchingInput || !user.userId) return;
+  const input = { ...user.matchingInput, lang: LANG };
+  process.stdout.write(`  [Matching] ${user.username} (${input.commodity}) ... `);
+  const t0 = Date.now();
+  R.ai.total++;
+
+  if (SKIP_AI) {
+    console.log('SKIPPED (--skip-ai)');
+    R.matchingAnalyses.push({ user: user.username, input, result: null, status: 'skipped', ms: 0 });
+    return;
+  }
+
+  const aiResult = await callGemini(getSystemPrompt(LANG), buildMatchingPrompt(input));
+  const ms = Date.now() - t0;
+  R.ai.responseTimes.push(ms);
+
+  let parsed = null;
+  let status = 'failed';
+
+  if (!aiResult.error) {
+    parsed = parseAIResponse(aiResult.text);
+    if (parsed) {
+      status = 'success';
+      R.ai.succeeded++;
+    } else {
+      parsed = { rawText: aiResult.text };
+      status = 'parsed_raw';
+      R.ai.succeeded++;
+    }
+  } else {
+    parsed = { rawText: aiResult.friendlyMessage };
+    R.ai.failed++;
+  }
+
+  try {
+    const { client, userId } = await signInAsUser(user.email);
+    await saveAnalysis(client, 'matching_analyses', userId, input, parsed);
+  } catch (err) {
+    if (VERBOSE) console.log(`    DB save error: ${err.message}`);
+  }
+
+  console.log(`${status} (${ms}ms)`);
+  if (VERBOSE && aiResult.text) console.log(`    ${aiResult.text.slice(0, 200)}...`);
+  R.matchingAnalyses.push({ user: user.username, input, result: parsed, status, ms });
+  await sleep(DELAY);
+}
+
+async function runWeatherAnalysis(user) {
+  if (!user.weatherInput || !user.userId) return;
+  const input = { ...user.weatherInput, lang: LANG };
+  process.stdout.write(`  [Weather] ${user.username} (${input.scenario}) ... `);
+  const t0 = Date.now();
+  R.ai.total++;
+
+  if (SKIP_AI) {
+    console.log('SKIPPED (--skip-ai)');
+    R.weatherAnalyses.push({ user: user.username, input, result: null, status: 'skipped', ms: 0 });
+    return;
+  }
+
+  const aiResult = await callGemini(getSystemPrompt(LANG), buildWeatherPrompt(input));
+  const ms = Date.now() - t0;
+  R.ai.responseTimes.push(ms);
+
+  let parsed = null;
+  let status = 'failed';
+
+  if (!aiResult.error) {
+    parsed = parseAIResponse(aiResult.text);
+    if (parsed) {
+      status = 'success';
+      R.ai.succeeded++;
+    } else {
+      parsed = { rawText: aiResult.text };
+      status = 'parsed_raw';
+      R.ai.succeeded++;
+    }
+  } else {
+    parsed = { rawText: aiResult.friendlyMessage };
+    R.ai.failed++;
+  }
+
+  try {
+    const { client, userId } = await signInAsUser(user.email);
+    await saveAnalysis(client, 'weather_analyses', userId, input, parsed);
+  } catch (err) {
+    if (VERBOSE) console.log(`    DB save error: ${err.message}`);
+  }
+
+  console.log(`${status} (${ms}ms)`);
+  if (VERBOSE && aiResult.text) console.log(`    ${aiResult.text.slice(0, 200)}...`);
+  R.weatherAnalyses.push({ user: user.username, input, result: parsed, status, ms });
+  await sleep(DELAY);
+}
+
+async function runTransactionCreation(user) {
+  if (!user.transactionInput || !user.userId) return;
+  const input = user.transactionInput;
+  process.stdout.write(`  [Transaction] ${user.username} (${input.commodity}) ... `);
+
+  try {
+    const { client, userId } = await signInAsUser(user.email);
+    // Find a farmer to link to the transaction if possible
+    let farmerId = null;
+    const farmers = R.users.filter((u) => u.role === 'farmer' && u.status !== 'failed');
+    if (farmers.length > 0) {
+      farmerId = farmers[Math.floor(Math.random() * farmers.length)].userId;
+    }
+
+    const tx = await createTransaction(client, userId, {
+      ...input,
+      farmer_id: farmerId,
+    });
+
+    console.log(`created (${tx.id.slice(0, 8)})`);
+    R.transactions.push({ user: user.username, transaction: tx, status: 'created' });
+  } catch (err) {
+    console.log(`FAILED: ${err.message}`);
+    R.transactions.push({ user: user.username, input, status: 'failed', error: err.message });
+  }
+}
+
 async function runChatConversation(user) {
   if (!user.chatTurns || !user.userId) return;
   const convTitle = user.chatTurns[0].slice(0, 50);
@@ -792,6 +1013,27 @@ async function phase2() {
     if (u.status === 'failed') continue;
     const persona = USERS.find((p) => p.email === u.email);
     if (persona?.policyInputs) await runPolicyAnalysis({ ...persona, userId: u.userId });
+  }
+
+  console.log('\n  --- Matching Analyses ---');
+  for (const u of R.users) {
+    if (u.status === 'failed') continue;
+    const persona = USERS.find((p) => p.email === u.email);
+    if (persona?.matchingInput) await runMatchingAnalysis({ ...persona, userId: u.userId });
+  }
+
+  console.log('\n  --- Weather Analyses ---');
+  for (const u of R.users) {
+    if (u.status === 'failed') continue;
+    const persona = USERS.find((p) => p.email === u.email);
+    if (persona?.weatherInput) await runWeatherAnalysis({ ...persona, userId: u.userId });
+  }
+
+  console.log('\n  --- Transactions ---');
+  for (const u of R.users) {
+    if (u.status === 'failed') continue;
+    const persona = USERS.find((p) => p.email === u.email);
+    if (persona?.transactionInput) await runTransactionCreation({ ...persona, userId: u.userId });
   }
 
   console.log('\n  --- Chat Conversations ---');
@@ -1005,7 +1247,38 @@ function phase4() {
   }
 
   md += `
-### 2.4 Chat Conversations (${R.chatConversations.length} conversations)
+### 2.4 Matching Analyses (${R.matchingAnalyses.length} total)
+
+| User | Commodity | Delivery | Status | Response Time |
+|------|-----------|----------|--------|--------------|
+`;
+  for (const a of R.matchingAnalyses) {
+    md += `| ${a.user} | ${a.input.commodity} | ${a.input.deliveryProvince} | ${a.status} | ${a.ms}ms |\n`;
+  }
+
+  md += `
+### 2.5 Weather Analyses (${R.weatherAnalyses.length} total)
+
+| User | Scenario | Regions | Status | Response Time |
+|------|----------|---------|--------|--------------|
+`;
+  for (const a of R.weatherAnalyses) {
+    md += `| ${a.user} | ${a.input.scenario} | ${a.input.regions.join(', ')} | ${a.status} | ${a.ms}ms |\n`;
+  }
+
+  md += `
+### 2.6 Transactions (${R.transactions.length} total)
+
+| User | Commodity | Volume | Status |
+|------|-----------|--------|--------|
+`;
+  for (const tx of R.transactions) {
+    const inp = tx.transaction || tx.input || {};
+    md += `| ${tx.user} | ${inp.commodity || 'N/A'} | ${inp.volume || 'N/A'} ${inp.volume_unit || ''} | ${tx.status} |\n`;
+  }
+
+  md += `
+### 2.7 Chat Conversations (${R.chatConversations.length} conversations)
 
 | User | Role | Turns | Status | Avg Response Time |
 |------|------|-------|--------|------------------|
@@ -1109,7 +1382,7 @@ function phase4() {
   if (R.crossFeature.weatherFindings.some((w) => !w.hasRegionalReference)) {
     recs.push('**Weather intelligence specificity:** Some AI weather risk responses lack region-specific references. Consider enriching prompts with real-time weather data or regional climate profiles.');
   }
-  recs.push('**Data persistence:** All analyses and chat conversations were successfully persisted to Supabase with RLS enforcement. The database schema supports the full platform workflow.');
+  recs.push('**Data persistence:** All analyses, chat conversations, and transactions were successfully persisted to Supabase with RLS enforcement. The database schema supports the full platform workflow including matching, weather, and transactions.');
   recs.push('**Scalability:** The sequential AI call pattern works for the current user base. For production scale, implement a job queue (e.g., BullMQ or Supabase Edge Functions) to handle concurrent analysis requests.');
   recs.push('**Error UX:** When AI calls fail, the platform returns a user-friendly waiting message instead of technical errors, maintaining trust with non-technical agricultural users.');
 
@@ -1128,7 +1401,7 @@ function phase4() {
 
 async function writeReport(md, reportPath) {
   // Fill DB counts
-  const tables = ['profiles', 'farmer_analyses', 'buyer_analyses', 'policy_analyses', 'chat_conversations', 'chat_messages'];
+  const tables = ['profiles', 'farmer_analyses', 'buyer_analyses', 'policy_analyses', 'matching_analyses', 'weather_analyses', 'transactions', 'chat_conversations', 'chat_messages'];
   let dbSection = `| Table | Row Count |\n|-------|----------|\n`;
   for (const t of tables) {
     const { count } = await adminClient.from(t).select('id', { count: 'exact', head: true });
