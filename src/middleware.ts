@@ -36,11 +36,16 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isDashboard = pathname.startsWith('/dashboard');
   const isApi = pathname.startsWith('/api');
+  const isLogin = pathname === '/login';
 
-  // Only enforce auth/role for dashboard and API routes
-  if (!isDashboard && !isApi) {
+  // Only enforce auth/role for dashboard, API, and login routes
+  if (!isDashboard && !isApi && !isLogin) {
     // For non-protected routes, still refresh session but don't block
-    await supabase.auth.getUser();
+    try {
+      await supabase.auth.getUser();
+    } catch {
+      // Ignore errors on non-protected routes
+    }
     return supabaseResponse;
   }
 
@@ -55,17 +60,31 @@ export async function middleware(request: NextRequest) {
     ]);
     user = authResult.data.user;
   } catch {
-    // Auth check timed out - return 401
+    // Auth check timed out or failed
     if (isApi) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       );
     }
+    if (isLogin) {
+      // Can't verify auth — just show login page
+      return supabaseResponse;
+    }
     // For dashboard pages, redirect to login on timeout
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);
+  }
+
+  // Login page: redirect authenticated users to dashboard, show page for unauthenticated
+  if (isLogin) {
+    if (user) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/dashboard';
+      return NextResponse.redirect(url);
+    }
+    return supabaseResponse;
   }
 
   // Handle unauthenticated users
@@ -79,13 +98,6 @@ export async function middleware(request: NextRequest) {
     // Redirect unauthenticated users away from dashboard
     const url = request.nextUrl.clone();
     url.pathname = '/login';
-    return NextResponse.redirect(url);
-  }
-
-  // Redirect authenticated users away from login
-  if (pathname === '/login') {
-    const url = request.nextUrl.clone();
-    url.pathname = '/dashboard';
     return NextResponse.redirect(url);
   }
 
