@@ -10,7 +10,8 @@
     "test": "vitest run",
     "setup": "node --env-file=.env.local scripts/setup-db.mjs",
     "simulate": "node --env-file=.env.local scripts/simulate.mjs",
-    "simulate:cleanup": "node --env-file=.env.local scripts/simulate.mjs --cleanup"
+    "simulate:cleanup": "node --env-file=.env.local scripts/simulate.mjs --cleanup",
+    "seed:users": "node --env-file=.env.local scripts/seed-users.mjs"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

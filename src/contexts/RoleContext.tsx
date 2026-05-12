@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, useRef, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from 'react';
 import { UserRole } from '@/types/auth';
 import { useAuth } from './AuthContext';
 import { createClient } from '@/lib/supabase/client';
@@ -16,6 +16,13 @@ export function RoleProvider({ children, initialRole }: { children: ReactNode; i
   const { user } = useAuth();
   const [role, setRoleState] = useState<UserRole>(initialRole || user?.role || 'farmer');
   const supabaseRef = useRef(createClient());
+
+  // Sync role state when user changes (e.g., after login or page refresh)
+  useEffect(() => {
+    if (user?.role) {
+      setRoleState(user.role);
+    }
+  }, [user?.role]);
 
   const setRole = useCallback((newRole: UserRole) => {
     setRoleState(newRole);

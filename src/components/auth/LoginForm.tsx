@@ -101,7 +101,7 @@ export default function LoginForm() {
           </form>
 
           <p className="mt-6 text-xs text-surface-400 text-center">
-            Demo: user@serenagri.com / user123
+            {t('login.demoHint')}
           </p>
         </div>
       </div>

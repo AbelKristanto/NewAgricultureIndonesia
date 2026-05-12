@@ -26,6 +26,7 @@ const en = {
     emailPlaceholder: 'Enter your email',
     usernamePlaceholder: 'Enter your username',
     passwordPlaceholder: 'Enter your password',
+    demoHint: 'Use role-based email, e.g.: farmer@serenagri.com / farmer123',
   },
   roles: {
     farmer: 'Farmer',

@@ -26,6 +26,7 @@ const id = {
     emailPlaceholder: 'Masukkan email Anda',
     usernamePlaceholder: 'Masukkan nama pengguna',
     passwordPlaceholder: 'Masukkan kata sandi',
+    demoHint: 'Gunakan email sesuai role, contoh: farmer@serenagri.com / farmer123',
   },
   roles: {
     farmer: 'Petani',
