@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import Spinner from '@/components/ui/Spinner';
 import Badge from '@/components/ui/Badge';
@@ -51,22 +51,37 @@ function CollapsibleSection({ title, icon, count, children, defaultOpen = false 
 
 export default function SimulationPage() {
   const { t } = useLanguage();
+  const isMounted = useRef(true);
   const [data, setData] = useState<SimulationData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetch('/api/admin/simulation')
+    const abortController = new AbortController();
+
+    fetch('/api/admin/simulation', { signal: abortController.signal })
       .then((res) => res.json())
       .then((json) => {
+        if (!isMounted.current) return;
         if (json.success) {
           setData(json.data);
         } else {
           setError(json.error || t('common.error'));
         }
       })
-      .catch(() => setError(t('common.error')))
-      .finally(() => setLoading(false));
+      .catch((err) => {
+        if (!isMounted.current) return;
+        if (err instanceof Error && err.name === 'AbortError') return;
+        setError(t('common.error'));
+      })
+      .finally(() => {
+        if (isMounted.current) setLoading(false);
+      });
+
+    return () => {
+      isMounted.current = false;
+      abortController.abort();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

@@ -1,19 +1,25 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getTransactionById, updateTransaction } from '@/lib/db/transactions';
+import {
+  getRequestContext,
+  createUnauthorizedResponse,
+} from '@/lib/api-helpers';
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // Extract user context from middleware headers
+  const ctx = getRequestContext(request);
+  if (!ctx) {
+    return createUnauthorizedResponse();
   }
 
+  // All authenticated roles permitted — no role check needed
+
   try {
+    const supabase = await createClient();
     const { id } = await params;
     const transaction = await getTransactionById(supabase, id);
 
@@ -22,7 +28,7 @@ export async function GET(
     }
 
     // Ensure the user is a party to this transaction
-    if (transaction.buyer_id !== user.id && transaction.farmer_id !== user.id) {
+    if (transaction.buyer_id !== ctx.userId && transaction.farmer_id !== ctx.userId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -40,14 +46,16 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // Extract user context from middleware headers
+  const ctx = getRequestContext(request);
+  if (!ctx) {
+    return createUnauthorizedResponse();
   }
 
+  // All authenticated roles permitted — no role check needed
+
   try {
+    const supabase = await createClient();
     const { id } = await params;
 
     // Verify the user is a party to this transaction before allowing update
@@ -55,7 +63,7 @@ export async function PATCH(
     if (!existing) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
-    if (existing.buyer_id !== user.id && existing.farmer_id !== user.id) {
+    if (existing.buyer_id !== ctx.userId && existing.farmer_id !== ctx.userId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

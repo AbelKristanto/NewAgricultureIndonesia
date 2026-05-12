@@ -33,6 +33,8 @@ export default function PolicyPage() {
   const { t, lang } = useLanguage();
   const { user } = useAuth();
   const supabaseRef = useRef(createClient());
+  const isMounted = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<PolicyResult | null>(null);
   const [error, setError] = useState('');
@@ -67,8 +69,11 @@ export default function PolicyPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input),
+        signal: abortControllerRef.current?.signal,
       });
+      if (!isMounted.current) return;
       const data = await res.json();
+      if (!isMounted.current) return;
       if (data.success) {
         setResults(data.data);
         // Refresh history
@@ -79,16 +84,20 @@ export default function PolicyPage() {
             .select('id, input, result, created_at')
             .eq('user_id', user.id)
             .order('created_at', { ascending: false })
-            .limit(10);
+            .limit(10)
+            .abortSignal(abortControllerRef.current?.signal ?? new AbortController().signal);
+          if (!isMounted.current) return;
           if (hist) setHistory(hist as HistoryItem[]);
         }
       } else {
         setError(data.error || t('common.error'));
       }
-    } catch {
+    } catch (err) {
+      if (!isMounted.current) return;
+      if (err instanceof Error && err.name === 'AbortError') return;
       setError(t('common.error'));
     } finally {
-      setLoading(false);
+      if (isMounted.current) setLoading(false);
     }
   };
 
@@ -100,6 +109,8 @@ export default function PolicyPage() {
   // Load history on mount
   useEffect(() => {
     if (!user?.id) return;
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
     const supabase = supabaseRef.current;
     supabase
       .from('policy_analyses')
@@ -107,9 +118,16 @@ export default function PolicyPage() {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(10)
+      .abortSignal(abortController.signal)
       .then(({ data }) => {
+        if (!isMounted.current) return;
         if (data) setHistory(data as HistoryItem[]);
       });
+
+    return () => {
+      isMounted.current = false;
+      abortController.abort();
+    };
   }, [user?.id]);
 
   const loadHistoryItem = (item: HistoryItem) => {

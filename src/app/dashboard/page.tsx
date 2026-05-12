@@ -1,13 +1,23 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRole } from '@/contexts/RoleContext';
-import { createClient } from '@/lib/supabase/client';
+import { getPermissions } from '@/lib/rbac';
+import { useDashboardData, DashboardMetrics } from '@/hooks/useDashboardData';
 import Card from '@/components/ui/Card';
-import Spinner from '@/components/ui/Spinner';
-import { BarChart3, Wheat, ShoppingCart, MessageSquare, Activity, FileText } from 'lucide-react';
+import {
+  BarChart3,
+  Wheat,
+  ShoppingCart,
+  MessageSquare,
+  CloudSun,
+  Handshake,
+  FileSignature,
+  FileText,
+  RefreshCw,
+} from 'lucide-react';
 import Link from 'next/link';
 
 function timeAgo(dateStr: string, lang: string): string {
@@ -26,101 +36,138 @@ function timeAgo(dateStr: string, lang: string): string {
   return `${days}d ago`;
 }
 
+/** Maps metric card keys to their translation keys, icons, and color classes */
+const METRIC_CARD_CONFIG: Record<
+  string,
+  { labelKey: string; icon: typeof Wheat; color: string }
+> = {
+  farmerAnalyses: {
+    labelKey: 'dashboard.metrics.farmerAnalyses',
+    icon: Wheat,
+    color: 'text-primary-600 bg-primary-50',
+  },
+  buyerAnalyses: {
+    labelKey: 'dashboard.metrics.buyerAnalyses',
+    icon: ShoppingCart,
+    color: 'text-secondary-600 bg-secondary-50',
+  },
+  chatConversations: {
+    labelKey: 'dashboard.metrics.chatConversations',
+    icon: MessageSquare,
+    color: 'text-green-600 bg-green-50',
+  },
+  weatherAnalyses: {
+    labelKey: 'dashboard.metrics.weatherAnalyses',
+    icon: CloudSun,
+    color: 'text-sky-600 bg-sky-50',
+  },
+  matchingAnalyses: {
+    labelKey: 'dashboard.metrics.matchingAnalyses',
+    icon: Handshake,
+    color: 'text-purple-600 bg-purple-50',
+  },
+  transactions: {
+    labelKey: 'dashboard.metrics.transactions',
+    icon: FileSignature,
+    color: 'text-orange-600 bg-orange-50',
+  },
+  policyAnalyses: {
+    labelKey: 'dashboard.metrics.policyAnalyses',
+    icon: FileText,
+    color: 'text-blue-600 bg-blue-50',
+  },
+};
+
+/** Maps quick action paths to their translation keys and icons */
+const QUICK_ACTION_CONFIG: Record<
+  string,
+  { labelKey: string; icon: typeof Wheat }
+> = {
+  '/dashboard/farmer': { labelKey: 'dashboard.actions.analyzeMyLand', icon: Wheat },
+  '/dashboard/buyer': { labelKey: 'dashboard.actions.findSuppliers', icon: ShoppingCart },
+  '/dashboard/policy': { labelKey: 'dashboard.actions.policyInsights', icon: BarChart3 },
+  '/dashboard/chat': { labelKey: 'dashboard.actions.chatWithAI', icon: MessageSquare },
+  '/dashboard/matching': { labelKey: 'dashboard.actions.supplyMatching', icon: Handshake },
+  '/dashboard/weather': { labelKey: 'dashboard.actions.weatherIntelligence', icon: CloudSun },
+  '/dashboard/transactions': { labelKey: 'dashboard.actions.transactions', icon: FileSignature },
+};
+
+/** Skeleton placeholder for a metric card */
+function MetricCardSkeleton() {
+  return (
+    <Card>
+      <div className="flex items-start justify-between">
+        <div className="space-y-2">
+          <div className="h-3 w-24 bg-surface-200 rounded animate-pulse" />
+          <div className="h-8 w-16 bg-surface-200 rounded animate-pulse mt-2" />
+        </div>
+        <div className="h-10 w-10 bg-surface-200 rounded-lg animate-pulse" />
+      </div>
+    </Card>
+  );
+}
+
+/** Skeleton placeholder for the activity list */
+function ActivityListSkeleton() {
+  return (
+    <div className="space-y-4">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <div key={i} className="flex items-start gap-3 pb-4 border-b border-surface-100 last:border-0 last:pb-0">
+          <div className="h-2 w-2 rounded-full bg-surface-200 mt-2 flex-shrink-0 animate-pulse" />
+          <div className="flex-1 space-y-2">
+            <div className="h-4 w-3/4 bg-surface-200 rounded animate-pulse" />
+            <div className="h-3 w-1/3 bg-surface-200 rounded animate-pulse" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const { t, lang } = useLanguage();
   const { user } = useAuth();
   const { role } = useRole();
-  const supabaseRef = useRef(createClient());
 
-  const [metrics, setMetrics] = useState({ farmerCount: 0, buyerCount: 0, policyCount: 0, chatCount: 0 });
-  const [recentItems, setRecentItems] = useState<{ type: string; title: string; created_at: string }[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { metrics, recentActivity, isLoading, error, retry } = useDashboardData(user?.id, role);
 
-  useEffect(() => {
-    if (!user?.id) return;
-    const supabase = supabaseRef.current;
+  const permissions = useMemo(() => getPermissions(role), [role]);
 
-    async function load() {
-      try {
-        const [farmer, buyer, policy, chat] = await Promise.all([
-          supabase.from('farmer_analyses').select('id', { count: 'exact', head: true }).eq('user_id', user!.id),
-          supabase.from('buyer_analyses').select('id', { count: 'exact', head: true }).eq('user_id', user!.id),
-          supabase.from('policy_analyses').select('id', { count: 'exact', head: true }).eq('user_id', user!.id),
-          supabase.from('chat_conversations').select('id', { count: 'exact', head: true }).eq('user_id', user!.id),
-        ]);
+  // Build metric cards based on role permissions
+  const metricCards = useMemo(() => {
+    return permissions.metricCards
+      .map((key) => {
+        const config = METRIC_CARD_CONFIG[key];
+        if (!config) return null;
+        return {
+          key,
+          ...config,
+          value: metrics[key as keyof DashboardMetrics] ?? 0,
+        };
+      })
+      .filter(Boolean) as Array<{
+      key: string;
+      labelKey: string;
+      icon: typeof Wheat;
+      color: string;
+      value: number;
+    }>;
+  }, [permissions.metricCards, metrics]);
 
-        setMetrics({
-          farmerCount: farmer.count ?? 0,
-          buyerCount: buyer.count ?? 0,
-          policyCount: policy.count ?? 0,
-          chatCount: chat.count ?? 0,
-        });
-
-        // Fetch recent activity
-        const [farmerRes, buyerRes, policyRes, chatRes] = await Promise.all([
-          supabase.from('farmer_analyses').select('input, created_at').eq('user_id', user!.id).order('created_at', { ascending: false }).limit(3),
-          supabase.from('buyer_analyses').select('input, created_at').eq('user_id', user!.id).order('created_at', { ascending: false }).limit(3),
-          supabase.from('policy_analyses').select('input, created_at').eq('user_id', user!.id).order('created_at', { ascending: false }).limit(3),
-          supabase.from('chat_conversations').select('title, created_at').eq('user_id', user!.id).order('created_at', { ascending: false }).limit(3),
-        ]);
-
-        const items: { type: string; title: string; created_at: string }[] = [];
-
-        for (const row of farmerRes.data || []) {
-          const input = row.input as Record<string, string> | null;
-          items.push({ type: 'Farmer', title: input ? `${input.province || ''} - ${input.currentCrops || ''}` : 'Farmer Analysis', created_at: row.created_at });
-        }
-        for (const row of buyerRes.data || []) {
-          const input = row.input as Record<string, string> | null;
-          items.push({ type: 'Buyer', title: input ? `${input.commodityType || ''}` : 'Buyer Sourcing', created_at: row.created_at });
-        }
-        for (const row of policyRes.data || []) {
-          const input = row.input as Record<string, string[]> | null;
-          items.push({ type: 'Policy', title: input?.regions?.slice(0, 2).join(', ') || 'Policy Analysis', created_at: row.created_at });
-        }
-        for (const row of chatRes.data || []) {
-          items.push({ type: 'Chat', title: row.title || 'Chat', created_at: row.created_at });
-        }
-
-        items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-        setRecentItems(items.slice(0, 5));
-      } catch (err) {
-        console.error('Failed to load dashboard data:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    load();
-  }, [user]);
-
-  const metricCards = role === 'buyer'
-    ? [
-        { labelKey: 'dashboard.metrics.buyerAnalyses', value: metrics.buyerCount, icon: ShoppingCart, color: 'text-primary-600 bg-primary-50' },
-        { labelKey: 'dashboard.metrics.farmerAnalyses', value: metrics.farmerCount, icon: Wheat, color: 'text-secondary-600 bg-secondary-50' },
-        { labelKey: 'dashboard.metrics.policyAnalyses', value: metrics.policyCount, icon: FileText, color: 'text-blue-600 bg-blue-50' },
-        { labelKey: 'dashboard.metrics.chatConversations', value: metrics.chatCount, icon: MessageSquare, color: 'text-green-600 bg-green-50' },
-      ]
-    : role === 'government'
-    ? [
-        { labelKey: 'dashboard.metrics.policyAnalyses', value: metrics.policyCount, icon: FileText, color: 'text-primary-600 bg-primary-50' },
-        { labelKey: 'dashboard.metrics.farmerAnalyses', value: metrics.farmerCount, icon: Wheat, color: 'text-secondary-600 bg-secondary-50' },
-        { labelKey: 'dashboard.metrics.buyerAnalyses', value: metrics.buyerCount, icon: ShoppingCart, color: 'text-blue-600 bg-blue-50' },
-        { labelKey: 'dashboard.metrics.chatConversations', value: metrics.chatCount, icon: MessageSquare, color: 'text-green-600 bg-green-50' },
-      ]
-    : [
-        { labelKey: 'dashboard.metrics.farmerAnalyses', value: metrics.farmerCount, icon: Wheat, color: 'text-primary-600 bg-primary-50' },
-        { labelKey: 'dashboard.metrics.buyerAnalyses', value: metrics.buyerCount, icon: ShoppingCart, color: 'text-secondary-600 bg-secondary-50' },
-        { labelKey: 'dashboard.metrics.policyAnalyses', value: metrics.policyCount, icon: FileText, color: 'text-blue-600 bg-blue-50' },
-        { labelKey: 'dashboard.metrics.chatConversations', value: metrics.chatCount, icon: MessageSquare, color: 'text-green-600 bg-green-50' },
-      ];
-
-  const quickActions = [
-    { href: '/dashboard/farmer', labelKey: 'dashboard.actions.analyzeMyLand', icon: Wheat },
-    { href: '/dashboard/buyer', labelKey: 'dashboard.actions.findSuppliers', icon: ShoppingCart },
-    { href: '/dashboard/policy', labelKey: 'dashboard.actions.policyInsights', icon: BarChart3 },
-    { href: '/dashboard/chat', labelKey: 'dashboard.actions.chatWithAI', icon: Activity },
-  ];
+  // Build quick actions based on role permissions
+  const quickActions = useMemo(() => {
+    return permissions.quickActions
+      .map((path) => {
+        const config = QUICK_ACTION_CONFIG[path];
+        if (!config) return null;
+        return { href: path, ...config };
+      })
+      .filter(Boolean) as Array<{
+      href: string;
+      labelKey: string;
+      icon: typeof Wheat;
+    }>;
+  }, [permissions.quickActions]);
 
   return (
     <div className="space-y-6">
@@ -132,28 +179,42 @@ export default function DashboardPage() {
         <p className="text-surface-500 mt-1">{t('dashboard.overview')}</p>
       </div>
 
+      {/* Error state with retry */}
+      {error && (
+        <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-sm text-red-700 flex-1">{error}</p>
+          <button
+            onClick={retry}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-red-700 bg-red-100 rounded-lg hover:bg-red-200 transition-colors"
+          >
+            <RefreshCw className="h-4 w-4" />
+            {t('common.retry')}
+          </button>
+        </div>
+      )}
+
       {/* Metrics Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {metricCards.map((m) => {
-          const Icon = m.icon;
-          return (
-            <Card key={m.labelKey}>
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-xs font-medium text-surface-500 uppercase tracking-wide">
-                    {t(m.labelKey)}
-                  </p>
-                  <p className="text-2xl font-bold text-gray-900 mt-2">
-                    {loading ? <Spinner size="sm" /> : m.value}
-                  </p>
-                </div>
-                <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${m.color}`}>
-                  <Icon className="h-5 w-5" />
-                </div>
-              </div>
-            </Card>
-          );
-        })}
+        {isLoading
+          ? permissions.metricCards.map((key) => <MetricCardSkeleton key={key} />)
+          : metricCards.map((m) => {
+              const Icon = m.icon;
+              return (
+                <Card key={m.key}>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-xs font-medium text-surface-500 uppercase tracking-wide">
+                        {t(m.labelKey)}
+                      </p>
+                      <p className="text-2xl font-bold text-gray-900 mt-2">{m.value}</p>
+                    </div>
+                    <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${m.color}`}>
+                      <Icon className="h-5 w-5" />
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -184,13 +245,13 @@ export default function DashboardPage() {
         {/* Recent Activity */}
         <Card className="lg:col-span-2">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('dashboard.recentActivity')}</h2>
-          {loading ? (
-            <div className="flex justify-center py-8"><Spinner /></div>
-          ) : recentItems.length === 0 ? (
+          {isLoading ? (
+            <ActivityListSkeleton />
+          ) : recentActivity.length === 0 ? (
             <p className="text-sm text-surface-400 py-4">{t('dashboard.noActivity')}</p>
           ) : (
             <div className="space-y-4">
-              {recentItems.map((item, i) => (
+              {recentActivity.map((item, i) => (
                 <div key={i} className="flex items-start gap-3 pb-4 border-b border-surface-100 last:border-0 last:pb-0">
                   <div className="h-2 w-2 rounded-full bg-primary-500 mt-2 flex-shrink-0" />
                   <div>

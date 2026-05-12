@@ -19,19 +19,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const supabaseRef = useRef(createClient());
+  const isMountedRef = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const subscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
 
   useEffect(() => {
     const supabase = supabaseRef.current;
+    isMountedRef.current = true;
+
+    // Create an AbortController for async operations in this effect
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
 
     const initUser = async () => {
       try {
+        // Check if aborted before starting
+        if (abortController.signal.aborted) return;
+
         const { data: { user: authUser } } = await supabase.auth.getUser();
+
+        // Check if aborted or unmounted after async operation
+        if (abortController.signal.aborted || !isMountedRef.current) return;
+
         if (authUser) {
           const { data: profile } = await supabase
             .from('profiles')
             .select('username, role')
             .eq('id', authUser.id)
             .single();
+
+          // Check again after second async operation
+          if (abortController.signal.aborted || !isMountedRef.current) return;
 
           setUser({
             id: authUser.id,
@@ -41,9 +59,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           });
         }
       } catch {
-        // No valid session
+        // No valid session or aborted request
       } finally {
-        setIsLoading(false);
+        if (isMountedRef.current && !abortController.signal.aborted) {
+          setIsLoading(false);
+        }
       }
     };
 
@@ -52,17 +72,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === 'SIGNED_OUT' || !session) {
-          setUser(null);
+          // Abort any pending async operations on sign-out
+          abortController.abort();
+
+          // Unsubscribe from auth state listener on sign-out
+          if (subscriptionRef.current) {
+            subscriptionRef.current.unsubscribe();
+            subscriptionRef.current = null;
+          }
+
+          if (isMountedRef.current) {
+            setUser(null);
+          }
           return;
         }
 
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          // Check if aborted or unmounted before proceeding
+          if (abortController.signal.aborted || !isMountedRef.current) return;
+
           const authUser = session.user;
           const { data: profile } = await supabase
             .from('profiles')
             .select('username, role')
             .eq('id', authUser.id)
             .single();
+
+          // Check again after async operation
+          if (abortController.signal.aborted || !isMountedRef.current) return;
 
           setUser({
             id: authUser.id,
@@ -74,32 +111,67 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
+    // Store subscription ref for sign-out cleanup
+    subscriptionRef.current = subscription;
+
     return () => {
+      // Mark as unmounted to prevent state updates
+      isMountedRef.current = false;
+
+      // Abort any pending async operations
+      abortController.abort();
+      abortControllerRef.current = null;
+
+      // Unsubscribe from auth state listener
       subscription.unsubscribe();
+      subscriptionRef.current = null;
     };
   }, []);
 
   const login = useCallback(async (email: string, password: string, role: UserRole) => {
     const supabase = supabaseRef.current;
+
+    // Create a new AbortController for the login operation
+    const loginAbortController = new AbortController();
+    abortControllerRef.current = loginAbortController;
+
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         return { success: false, message: error.message };
       }
 
+      // Check if aborted or unmounted after async operation
+      if (loginAbortController.signal.aborted || !isMountedRef.current) {
+        return { success: false, message: 'Operation cancelled' };
+      }
+
       // Update the user's role in their profile
       const { data: { user: authUser } } = await supabase.auth.getUser();
+
+      if (loginAbortController.signal.aborted || !isMountedRef.current) {
+        return { success: false, message: 'Operation cancelled' };
+      }
+
       if (authUser) {
         await supabase
           .from('profiles')
           .update({ role })
           .eq('id', authUser.id);
 
+        if (loginAbortController.signal.aborted || !isMountedRef.current) {
+          return { success: false, message: 'Operation cancelled' };
+        }
+
         const { data: profile } = await supabase
           .from('profiles')
           .select('username, role')
           .eq('id', authUser.id)
           .single();
+
+        if (loginAbortController.signal.aborted || !isMountedRef.current) {
+          return { success: false, message: 'Operation cancelled' };
+        }
 
         setUser({
           id: authUser.id,
@@ -118,8 +190,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     const supabase = supabaseRef.current;
+
+    // Abort any pending async operations before signing out
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+
+    // Unsubscribe from auth state listener before sign-out
+    if (subscriptionRef.current) {
+      subscriptionRef.current.unsubscribe();
+      subscriptionRef.current = null;
+    }
+
     await supabase.auth.signOut();
-    setUser(null);
+
+    if (isMountedRef.current) {
+      setUser(null);
+    }
+
     router.push('/login');
     router.refresh();
   }, [router]);

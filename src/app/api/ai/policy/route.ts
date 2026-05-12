@@ -1,17 +1,39 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
 import { generateContent, parseAIResponse } from '@/lib/gemini';
 import { getSystemPrompt } from '@/lib/prompts/system-prompt';
 import { buildPolicyPrompt } from '@/lib/prompts/policy-prompt';
 import { PolicyQuery, PolicyInsights } from '@/types/policy';
 import { saveAnalysis } from '@/lib/db/analyses';
+import { createAdminClient } from '@/lib/supabase/admin';
+import {
+  getRequestContext,
+  createUnauthorizedResponse,
+  createRateLimitResponse,
+} from '@/lib/api-helpers';
+import {
+  getEndpointCategory,
+  checkRateLimit,
+  decrementRateLimit,
+  RATE_LIMITS,
+} from '@/lib/rate-limiter';
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  // Extract user context from middleware headers
+  const ctx = getRequestContext(request);
+  if (!ctx) {
+    return createUnauthorizedResponse();
+  }
 
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // All authenticated roles permitted — no role check needed
+
+  // Check rate limit
+  const category = getEndpointCategory('/api/ai/policy');
+  if (category) {
+    const config = RATE_LIMITS[category];
+    const rateLimitResult = await checkRateLimit(ctx.userId, category, config);
+    if (!rateLimitResult.allowed) {
+      return createRateLimitResponse(rateLimitResult.retryAfterSeconds ?? 60);
+    }
   }
 
   try {
@@ -19,14 +41,28 @@ export async function POST(request: Request) {
     const systemPrompt = getSystemPrompt(body.lang);
     const userPrompt = buildPolicyPrompt(body);
 
-    const responseText = await generateContent(systemPrompt, userPrompt);
-    const parsed = parseAIResponse<PolicyInsights>(responseText);
+    let responseText: string;
+    try {
+      responseText = await generateContent(systemPrompt, userPrompt);
+    } catch (aiError: unknown) {
+      // Decrement rate limit on 5xx AI service errors
+      if (category) {
+        await decrementRateLimit(ctx.userId, category);
+      }
+      console.error('Policy AI service error:', aiError);
+      return NextResponse.json(
+        { success: false, error: 'Gagal menghasilkan analisis' },
+        { status: 500 }
+      );
+    }
 
+    const parsed = parseAIResponse<PolicyInsights>(responseText);
     const resultData = parsed || { rawText: responseText };
 
-    // Persist to database
+    // Persist to database using admin client
     try {
-      await saveAnalysis(supabase, 'policy_analyses', user.id, body as unknown as Record<string, unknown>, resultData as unknown as Record<string, unknown>);
+      const supabase = createAdminClient();
+      await saveAnalysis(supabase, 'policy_analyses', ctx.userId, body as unknown as Record<string, unknown>, resultData as unknown as Record<string, unknown>);
     } catch (dbError) {
       console.error('Failed to save policy analysis:', dbError);
     }
@@ -35,7 +71,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Policy AI error:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to generate analysis' },
+      { success: false, error: 'Gagal menghasilkan analisis' },
       { status: 500 }
     );
   }

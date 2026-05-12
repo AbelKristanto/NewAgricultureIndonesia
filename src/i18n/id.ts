@@ -58,12 +58,18 @@ const id = {
       buyerAnalyses: 'Analisis Pembeli',
       policyAnalyses: 'Analisis Kebijakan',
       chatConversations: 'Percakapan Chat',
+      weatherAnalyses: 'Analisis Cuaca',
+      matchingAnalyses: 'Analisis Matching',
+      transactions: 'Transaksi',
     },
     actions: {
       analyzeMyLand: 'Analisis Lahan Saya',
       findSuppliers: 'Cari Pemasok',
       policyInsights: 'Wawasan Kebijakan',
       chatWithAI: 'Chat dengan AI',
+      supplyMatching: 'Pencocokan Pasokan',
+      weatherIntelligence: 'Intelijen Cuaca',
+      transactions: 'Transaksi',
     },
   },
   farmer: {

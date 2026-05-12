@@ -58,12 +58,18 @@ const en = {
       buyerAnalyses: 'Buyer Analyses',
       policyAnalyses: 'Policy Analyses',
       chatConversations: 'Chat Conversations',
+      weatherAnalyses: 'Weather Analyses',
+      matchingAnalyses: 'Matching Analyses',
+      transactions: 'Transactions',
     },
     actions: {
       analyzeMyLand: 'Analyze My Land',
       findSuppliers: 'Find Suppliers',
       policyInsights: 'Policy Insights',
       chatWithAI: 'Chat with AI',
+      supplyMatching: 'Supply Matching',
+      weatherIntelligence: 'Weather Intelligence',
+      transactions: 'Transactions',
     },
   },
   farmer: {

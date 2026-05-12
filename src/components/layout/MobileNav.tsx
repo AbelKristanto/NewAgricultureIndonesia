@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useRole } from '@/contexts/RoleContext';
+import { getPermissions } from '@/lib/rbac';
 import { Home, Wheat, ShoppingCart, Building2, MessageSquare, Handshake, CloudSun, FileSignature, FlaskConical, Menu, X } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -26,6 +28,19 @@ export default function MobileNav() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const { t } = useLanguage();
+  const { role } = useRole();
+
+  const permittedPages = useMemo(() => getPermissions(role).pages, [role]);
+
+  const filteredPrimaryNav = useMemo(
+    () => primaryNav.filter((item) => permittedPages.includes(item.href)),
+    [permittedPages]
+  );
+
+  const filteredSecondaryNav = useMemo(
+    () => secondaryNav.filter((item) => permittedPages.includes(item.href)),
+    [permittedPages]
+  );
 
   return (
     <div className="md:hidden">
@@ -47,7 +62,7 @@ export default function MobileNav() {
               </button>
             </div>
             <nav className="p-3 space-y-1">
-              {primaryNav.map((item) => {
+              {filteredPrimaryNav.map((item) => {
                 const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
                 const Icon = item.icon;
                 return (
@@ -68,9 +83,11 @@ export default function MobileNav() {
                 );
               })}
 
-              <div className="border-t border-surface-200 my-2" />
+              {filteredSecondaryNav.length > 0 && (
+                <div className="border-t border-surface-200 my-2" />
+              )}
 
-              {secondaryNav.map((item) => {
+              {filteredSecondaryNav.map((item) => {
                 const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
                 const Icon = item.icon;
                 return (

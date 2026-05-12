@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Transaction, CreateTransactionInput } from '@/types/transaction';
 import { COMMODITIES, INDONESIAN_PROVINCES, TRANSACTION_STATUSES } from '@/lib/constants';
@@ -13,6 +13,8 @@ import { Plus, FileText, X } from 'lucide-react';
 
 export default function TransactionsPage() {
   const { t, lang } = useLanguage();
+  const isMounted = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -32,22 +34,33 @@ export default function TransactionsPage() {
     endDate: '',
   });
 
-  const fetchTransactions = async () => {
+  const fetchTransactions = async (signal?: AbortSignal) => {
     try {
-      const res = await fetch('/api/transactions');
+      const res = await fetch('/api/transactions', { signal });
+      if (!isMounted.current) return;
       const data = await res.json();
+      if (!isMounted.current) return;
       if (data.success) {
         setTransactions(data.data);
       }
-    } catch {
+    } catch (err) {
+      if (!isMounted.current) return;
+      if (err instanceof Error && err.name === 'AbortError') return;
       setError(t('common.error'));
     } finally {
-      setLoading(false);
+      if (isMounted.current) setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchTransactions();
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+    fetchTransactions(abortController.signal);
+
+    return () => {
+      isMounted.current = false;
+      abortController.abort();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -72,19 +85,24 @@ export default function TransactionsPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input),
+        signal: abortControllerRef.current?.signal,
       });
+      if (!isMounted.current) return;
       const data = await res.json();
+      if (!isMounted.current) return;
       if (data.success) {
         setShowForm(false);
         setForm({ commodity: '', volume: '', volumeUnit: 'tons', pricePerUnit: '', deliveryProvince: '', deliveryCity: '', startDate: '', endDate: '' });
-        await fetchTransactions();
+        await fetchTransactions(abortControllerRef.current?.signal);
       } else {
         setError(data.error || t('common.error'));
       }
-    } catch {
+    } catch (err) {
+      if (!isMounted.current) return;
+      if (err instanceof Error && err.name === 'AbortError') return;
       setError(t('common.error'));
     } finally {
-      setCreating(false);
+      if (isMounted.current) setCreating(false);
     }
   };
 
@@ -95,16 +113,21 @@ export default function TransactionsPage() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
+        signal: abortControllerRef.current?.signal,
       });
+      if (!isMounted.current) return;
       const data = await res.json();
+      if (!isMounted.current) return;
       if (data.success) {
         setSelectedTx(data.data);
-        await fetchTransactions();
+        await fetchTransactions(abortControllerRef.current?.signal);
       }
-    } catch {
+    } catch (err) {
+      if (!isMounted.current) return;
+      if (err instanceof Error && err.name === 'AbortError') return;
       setError(t('common.error'));
     } finally {
-      setUpdatingStatus(false);
+      if (isMounted.current) setUpdatingStatus(false);
     }
   };
 

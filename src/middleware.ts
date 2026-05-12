@@ -1,5 +1,9 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { isPagePermitted } from '@/lib/rbac';
+import type { UserRole } from '@/types/auth';
+
+const AUTH_TIMEOUT_MS = 5000;
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -29,24 +33,100 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
   const { pathname } = request.nextUrl;
+  const isDashboard = pathname.startsWith('/dashboard');
+  const isApi = pathname.startsWith('/api');
 
-  // Redirect unauthenticated users away from dashboard
-  if (!user && pathname.startsWith('/dashboard')) {
+  // Only enforce auth/role for dashboard and API routes
+  if (!isDashboard && !isApi) {
+    // For non-protected routes, still refresh session but don't block
+    await supabase.auth.getUser();
+    return supabaseResponse;
+  }
+
+  // Validate user session with 5-second timeout
+  let user = null;
+  try {
+    const authResult = await Promise.race([
+      supabase.auth.getUser(),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Auth timeout')), AUTH_TIMEOUT_MS)
+      ),
+    ]);
+    user = authResult.data.user;
+  } catch {
+    // Auth check timed out - return 401
+    if (isApi) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+    // For dashboard pages, redirect to login on timeout
+    const url = request.nextUrl.clone();
+    url.pathname = '/login';
+    return NextResponse.redirect(url);
+  }
+
+  // Handle unauthenticated users
+  if (!user) {
+    if (isApi) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+    // Redirect unauthenticated users away from dashboard
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);
   }
 
   // Redirect authenticated users away from login
-  if (user && pathname === '/login') {
+  if (pathname === '/login') {
     const url = request.nextUrl.clone();
     url.pathname = '/dashboard';
     return NextResponse.redirect(url);
+  }
+
+  // Fetch user profile to get role from database
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  const role: UserRole | null = profile?.role ?? null;
+
+  // For dashboard pages: check role permission
+  if (isDashboard) {
+    // The main /dashboard page is always accessible to authenticated users
+    if (pathname !== '/dashboard' && !isPagePermitted(role, pathname)) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/dashboard';
+      return NextResponse.redirect(url);
+    }
+    return supabaseResponse;
+  }
+
+  // For API routes: attach x-user-id and x-user-role headers
+  if (isApi) {
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set('x-user-id', user.id);
+    requestHeaders.set('x-user-role', role || '');
+
+    const response = NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    });
+
+    // Copy cookies from supabaseResponse to the new response
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      response.cookies.set(cookie.name, cookie.value);
+    });
+
+    return response;
   }
 
   return supabaseResponse;

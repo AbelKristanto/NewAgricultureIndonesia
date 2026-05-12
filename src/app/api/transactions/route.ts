@@ -2,17 +2,23 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createTransaction, getUserTransactions } from '@/lib/db/transactions';
 import { CreateTransactionInput } from '@/types/transaction';
+import {
+  getRequestContext,
+  createUnauthorizedResponse,
+} from '@/lib/api-helpers';
 
-export async function GET() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+export async function GET(request: Request) {
+  // Extract user context from middleware headers
+  const ctx = getRequestContext(request);
+  if (!ctx) {
+    return createUnauthorizedResponse();
   }
 
+  // All authenticated roles permitted — no role check needed
+
   try {
-    const transactions = await getUserTransactions(supabase, user.id);
+    const supabase = await createClient();
+    const transactions = await getUserTransactions(supabase, ctx.userId);
     return NextResponse.json({ success: true, data: transactions });
   } catch (error) {
     console.error('Transactions fetch error:', error);
@@ -24,17 +30,19 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // Extract user context from middleware headers
+  const ctx = getRequestContext(request);
+  if (!ctx) {
+    return createUnauthorizedResponse();
   }
 
+  // All authenticated roles permitted — no role check needed
+
   try {
+    const supabase = await createClient();
     const body: CreateTransactionInput = await request.json();
 
-    const transaction = await createTransaction(supabase, user.id, {
+    const transaction = await createTransaction(supabase, ctx.userId, {
       commodity: body.commodity,
       volume: body.volume,
       volume_unit: body.volumeUnit,

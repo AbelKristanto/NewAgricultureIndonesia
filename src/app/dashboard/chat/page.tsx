@@ -19,6 +19,9 @@ export default function ChatPage() {
   const { t, lang } = useLanguage();
   const { user } = useAuth();
   const supabaseRef = useRef(createClient());
+  const isMounted = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const readerRef = useRef<ReadableStreamDefaultReader<Uint8Array> | null>(null);
 
   const [messages, setMessages] = useState<ChatMessage[]>([
     { id: 'welcome', role: 'assistant', content: t('chat.welcome'), timestamp: new Date() },
@@ -42,15 +45,29 @@ export default function ChatPage() {
   // Load conversations list
   useEffect(() => {
     if (!user?.id) return;
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
     const supabase = supabaseRef.current;
     supabase
       .from('chat_conversations')
       .select('id, title, updated_at')
       .eq('user_id', user.id)
       .order('updated_at', { ascending: false })
+      .abortSignal(abortController.signal)
       .then(({ data }) => {
+        if (!isMounted.current) return;
         if (data) setConversations(data);
       });
+
+    return () => {
+      isMounted.current = false;
+      abortController.abort();
+      // Cancel any active stream reader on unmount
+      if (readerRef.current) {
+        readerRef.current.cancel().catch(() => {});
+        readerRef.current = null;
+      }
+    };
   }, [user?.id]);
 
   const loadConversation = async (conv: Conversation) => {
@@ -60,8 +77,10 @@ export default function ChatPage() {
       .select('id, role, content, created_at')
       .eq('conversation_id', conv.id)
       .eq('user_id', user!.id)
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: true })
+      .abortSignal(abortControllerRef.current?.signal ?? new AbortController().signal);
 
+    if (!isMounted.current) return;
     if (data) {
       const loaded: ChatMessage[] = data.map((m) => ({
         id: m.id,
@@ -111,11 +130,18 @@ export default function ChatPage() {
         .filter((m) => m.id !== 'welcome')
         .map((m) => ({ role: m.role, content: m.content }));
 
+      const fetchController = new AbortController();
       const res = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: apiMessages, lang, conversationId }),
+        signal: fetchController.signal,
       });
+
+      if (!isMounted.current) {
+        fetchController.abort();
+        return;
+      }
 
       if (!res.ok) {
         throw new Error('Failed to get response');
@@ -130,12 +156,20 @@ export default function ChatPage() {
       const reader = res.body?.getReader();
       if (!reader) throw new Error('No reader');
 
+      // Store reader ref for cleanup on unmount
+      readerRef.current = reader;
+
       const decoder = new TextDecoder();
       let fullText = '';
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
+        if (!isMounted.current) {
+          reader.cancel().catch(() => {});
+          readerRef.current = null;
+          return;
+        }
         const chunk = decoder.decode(value, { stream: true });
         fullText += chunk;
         setMessages((prev) =>
@@ -143,25 +177,33 @@ export default function ChatPage() {
         );
       }
 
+      readerRef.current = null;
+
       // Refresh conversations list
-      if (user?.id) {
+      if (user?.id && isMounted.current) {
         const supabase = supabaseRef.current;
         const { data } = await supabase
           .from('chat_conversations')
           .select('id, title, updated_at')
           .eq('user_id', user.id)
-          .order('updated_at', { ascending: false });
+          .order('updated_at', { ascending: false })
+          .abortSignal(abortControllerRef.current?.signal ?? new AbortController().signal);
+        if (!isMounted.current) return;
         if (data) setConversations(data);
       }
-    } catch {
+    } catch (err) {
+      if (!isMounted.current) return;
+      if (err instanceof Error && err.name === 'AbortError') return;
       setMessages((prev) =>
         prev.map((m) =>
           m.id === assistantId ? { ...m, content: t('common.error') } : m
         )
       );
     } finally {
-      setIsStreaming(false);
-      inputRef.current?.focus();
+      if (isMounted.current) {
+        setIsStreaming(false);
+        inputRef.current?.focus();
+      }
     }
   };
 

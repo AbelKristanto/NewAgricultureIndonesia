@@ -2,19 +2,41 @@ import { createClient } from '@/lib/supabase/server';
 import { generateContentStream } from '@/lib/gemini';
 import { getChatSystemPrompt } from '@/lib/prompts/chat-prompt';
 import { createConversation, saveMessage } from '@/lib/db/chat';
+import {
+  getRequestContext,
+  createUnauthorizedResponse,
+  createRateLimitResponse,
+} from '@/lib/api-helpers';
+import {
+  getEndpointCategory,
+  checkRateLimit,
+  decrementRateLimit,
+  RATE_LIMITS,
+} from '@/lib/rate-limiter';
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  // Extract user context from middleware headers
+  const ctx = getRequestContext(request);
+  if (!ctx) {
+    return createUnauthorizedResponse();
+  }
 
-  if (!user) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-    });
+  // All authenticated roles permitted — no role check needed
+
+  // Check rate limit
+  const category = getEndpointCategory('/api/ai/chat');
+  if (category) {
+    const config = RATE_LIMITS[category];
+    const rateLimitResult = await checkRateLimit(ctx.userId, category, config);
+    if (!rateLimitResult.allowed) {
+      return createRateLimitResponse(rateLimitResult.retryAfterSeconds ?? 60);
+    }
   }
 
   try {
+    // We still need a supabase client for DB operations (chat uses RLS-aware client)
+    const supabase = await createClient();
+
     const body = await request.json();
     const { messages, lang, conversationId: existingConversationId } = body as {
       messages: { role: string; content: string }[];
@@ -30,7 +52,7 @@ export async function POST(request: Request) {
         ? lastUserMsg.content.slice(0, 50) + (lastUserMsg.content.length > 50 ? '...' : '')
         : 'New conversation';
       try {
-        const conv = await createConversation(supabase, user.id, title);
+        const conv = await createConversation(supabase, ctx.userId, title);
         conversationId = conv.id;
       } catch (dbError) {
         console.error('Failed to create conversation:', dbError);
@@ -41,14 +63,28 @@ export async function POST(request: Request) {
     const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
     if (conversationId && lastUserMsg) {
       try {
-        await saveMessage(supabase, conversationId, user.id, 'user', lastUserMsg.content);
+        await saveMessage(supabase, conversationId, ctx.userId, 'user', lastUserMsg.content);
       } catch (dbError) {
         console.error('Failed to save user message:', dbError);
       }
     }
 
     const systemPrompt = getChatSystemPrompt(lang);
-    const stream = await generateContentStream(systemPrompt, messages);
+
+    let stream;
+    try {
+      stream = await generateContentStream(systemPrompt, messages);
+    } catch (aiError: unknown) {
+      // Decrement rate limit on 5xx AI service errors
+      if (category) {
+        await decrementRateLimit(ctx.userId, category);
+      }
+      console.error('Chat AI service error:', aiError);
+      return new Response(JSON.stringify({ error: 'Gagal menghasilkan respons' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
 
     const encoder = new TextEncoder();
     let fullText = '';
@@ -68,12 +104,16 @@ export async function POST(request: Request) {
           // Save assistant message after stream completes
           if (conversationId && fullText) {
             try {
-              await saveMessage(supabase, conversationId, user.id, 'assistant', fullText);
+              await saveMessage(supabase, conversationId, ctx.userId, 'assistant', fullText);
             } catch (dbError) {
               console.error('Failed to save assistant message:', dbError);
             }
           }
         } catch (err) {
+          // Decrement rate limit if streaming fails (5xx-like)
+          if (category) {
+            await decrementRateLimit(ctx.userId, category);
+          }
           controller.error(err);
         }
       },
@@ -88,7 +128,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error('Chat AI error:', error);
-    return new Response(JSON.stringify({ error: 'Failed to generate response' }), {
+    return new Response(JSON.stringify({ error: 'Gagal menghasilkan respons' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
