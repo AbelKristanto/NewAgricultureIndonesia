@@ -102,11 +102,15 @@ export async function middleware(request: NextRequest) {
   }
 
   // Fetch user profile to get role from database
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('role')
     .eq('id', user.id)
     .single();
+
+  if (profileError) {
+    console.error('[Middleware] Profile query error:', profileError.message);
+  }
 
   const role: UserRole | null = profile?.role ?? null;
 
