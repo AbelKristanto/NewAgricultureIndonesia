@@ -72,41 +72,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === 'SIGNED_OUT' || !session) {
-          // Abort any pending async operations on sign-out
-          abortController.abort();
-
-          // Unsubscribe from auth state listener on sign-out
-          if (subscriptionRef.current) {
-            subscriptionRef.current.unsubscribe();
-            subscriptionRef.current = null;
-          }
-
           if (isMountedRef.current) {
             setUser(null);
           }
           return;
         }
 
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          // Check if aborted or unmounted before proceeding
-          if (abortController.signal.aborted || !isMountedRef.current) return;
+        // Only handle TOKEN_REFRESHED here.
+        // SIGNED_IN is handled by the login() function directly.
+        if (event === 'TOKEN_REFRESHED') {
+          if (!isMountedRef.current) return;
 
           const authUser = session.user;
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('username, role')
-            .eq('id', authUser.id)
-            .single();
+          try {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('username, role')
+              .eq('id', authUser.id)
+              .single();
 
-          // Check again after async operation
-          if (abortController.signal.aborted || !isMountedRef.current) return;
+            if (!isMountedRef.current) return;
 
-          setUser({
-            id: authUser.id,
-            email: authUser.email || '',
-            username: profile?.username || authUser.email?.split('@')[0] || '',
-            role: (profile?.role as UserRole) || 'farmer',
-          });
+            setUser({
+              id: authUser.id,
+              email: authUser.email || '',
+              username: profile?.username || authUser.email?.split('@')[0] || '',
+              role: (profile?.role as UserRole) || 'farmer',
+            });
+          } catch {
+            // Ignore errors during token refresh
+          }
         }
       }
     );
@@ -131,35 +126,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (email: string, password: string, role: UserRole) => {
     const supabase = supabaseRef.current;
 
-    // Create a new AbortController for the login operation
-    const loginAbortController = new AbortController();
-    abortControllerRef.current = loginAbortController;
-
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         return { success: false, message: error.message };
       }
 
-      // Check if aborted or unmounted after async operation
-      if (loginAbortController.signal.aborted || !isMountedRef.current) {
+      if (!isMountedRef.current) {
         return { success: false, message: 'Operation cancelled' };
       }
 
       // Update the user's role in their profile
       const { data: { user: authUser } } = await supabase.auth.getUser();
 
-      if (loginAbortController.signal.aborted || !isMountedRef.current) {
+      if (!isMountedRef.current) {
         return { success: false, message: 'Operation cancelled' };
       }
 
       if (authUser) {
+        // Update role in profile - ignore errors (RLS might block, middleware will read from DB)
         await supabase
           .from('profiles')
           .update({ role })
           .eq('id', authUser.id);
 
-        if (loginAbortController.signal.aborted || !isMountedRef.current) {
+        if (!isMountedRef.current) {
           return { success: false, message: 'Operation cancelled' };
         }
 
@@ -169,7 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .eq('id', authUser.id)
           .single();
 
-        if (loginAbortController.signal.aborted || !isMountedRef.current) {
+        if (!isMountedRef.current) {
           return { success: false, message: 'Operation cancelled' };
         }
 
@@ -183,7 +174,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       router.refresh();
       return { success: true };
-    } catch {
+    } catch (err) {
+      console.error('[AuthContext] Login error:', err);
       return { success: false, message: 'Network error' };
     }
   }, [router]);
