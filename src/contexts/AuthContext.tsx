@@ -42,20 +42,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (abortController.signal.aborted || !isMountedRef.current) return;
 
         if (authUser) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('username, role')
-            .eq('id', authUser.id)
-            .single();
+          // Try to fetch profile, but don't fail if table is unreachable
+          let profileUsername: string | null = null;
+          let profileRole: UserRole | null = null;
 
-          // Check again after second async operation
+          try {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('username, role')
+              .eq('id', authUser.id)
+              .single();
+
+            if (profile) {
+              profileUsername = profile.username;
+              profileRole = profile.role as UserRole;
+            }
+          } catch {
+            // Profile query failed (table might not exist or schema cache stale)
+            console.warn('[AuthContext] Profile query failed during init, using defaults');
+          }
+
+          // Check again after async operation
           if (abortController.signal.aborted || !isMountedRef.current) return;
 
           setUser({
             id: authUser.id,
             email: authUser.email || '',
-            username: profile?.username || authUser.email?.split('@')[0] || '',
-            role: (profile?.role as UserRole) || 'farmer',
+            username: profileUsername || authUser.email?.split('@')[0] || '',
+            role: profileRole || 'farmer',
           });
         }
       } catch {
@@ -84,6 +98,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (!isMountedRef.current) return;
 
           const authUser = session.user;
+          let profileUsername: string | null = null;
+          let profileRole: UserRole | null = null;
+
           try {
             const { data: profile } = await supabase
               .from('profiles')
@@ -91,17 +108,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               .eq('id', authUser.id)
               .single();
 
-            if (!isMountedRef.current) return;
-
-            setUser({
-              id: authUser.id,
-              email: authUser.email || '',
-              username: profile?.username || authUser.email?.split('@')[0] || '',
-              role: (profile?.role as UserRole) || 'farmer',
-            });
+            if (profile) {
+              profileUsername = profile.username;
+              profileRole = profile.role as UserRole;
+            }
           } catch {
-            // Ignore errors during token refresh
+            // Profile query failed during token refresh, use defaults
+            console.warn('[AuthContext] Profile query failed during token refresh');
           }
+
+          if (!isMountedRef.current) return;
+
+          setUser({
+            id: authUser.id,
+            email: authUser.email || '',
+            username: profileUsername || authUser.email?.split('@')[0] || '',
+            role: profileRole || 'farmer',
+          });
         }
       }
     );
@@ -136,7 +159,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { success: false, message: 'Operation cancelled' };
       }
 
-      // Update the user's role in their profile
+      // Get the authenticated user
       const { data: { user: authUser } } = await supabase.auth.getUser();
 
       if (!isMountedRef.current) {
@@ -144,21 +167,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (authUser) {
-        // Update role in profile - ignore errors (RLS might block, middleware will read from DB)
-        await supabase
-          .from('profiles')
-          .update({ role })
-          .eq('id', authUser.id);
+        // Try to update role in profile — ignore errors (table might not exist or RLS blocks)
+        try {
+          await supabase
+            .from('profiles')
+            .update({ role })
+            .eq('id', authUser.id);
+        } catch {
+          console.warn('[AuthContext] Could not update profile role, continuing with login');
+        }
 
         if (!isMountedRef.current) {
           return { success: false, message: 'Operation cancelled' };
         }
 
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('username, role')
-          .eq('id', authUser.id)
-          .single();
+        // Try to fetch profile for username/role — use fallbacks if it fails
+        let profileUsername: string | null = null;
+        let profileRole: UserRole = role;
+
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('username, role')
+            .eq('id', authUser.id)
+            .single();
+
+          if (profile) {
+            profileUsername = profile.username;
+            profileRole = (profile.role as UserRole) || role;
+          }
+        } catch {
+          console.warn('[AuthContext] Could not fetch profile, using defaults');
+        }
 
         if (!isMountedRef.current) {
           return { success: false, message: 'Operation cancelled' };
@@ -167,8 +207,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser({
           id: authUser.id,
           email: authUser.email || '',
-          username: profile?.username || authUser.email?.split('@')[0] || '',
-          role: (profile?.role as UserRole) || role,
+          username: profileUsername || authUser.email?.split('@')[0] || '',
+          role: profileRole,
         });
       }
 

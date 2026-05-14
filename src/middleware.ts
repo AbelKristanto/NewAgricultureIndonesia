@@ -102,17 +102,24 @@ export async function middleware(request: NextRequest) {
   }
 
   // Fetch user profile to get role from database
-  const { data: profile, error: profileError } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
+  // Wrapped in try/catch so login still works even if profiles table is unreachable
+  let role: UserRole | null = null;
+  try {
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
 
-  if (profileError) {
-    console.error('[Middleware] Profile query error:', profileError.message);
+    if (profileError) {
+      console.error('[Middleware] Profile query error:', profileError.message);
+    } else {
+      role = profile?.role ?? null;
+    }
+  } catch (err) {
+    console.error('[Middleware] Profile query exception:', err);
+    // Continue with null role — user can still access /dashboard with default permissions
   }
-
-  const role: UserRole | null = profile?.role ?? null;
 
   // For dashboard pages: check role permission
   if (isDashboard) {

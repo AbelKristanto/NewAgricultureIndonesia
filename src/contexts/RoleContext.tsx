@@ -27,11 +27,16 @@ export function RoleProvider({ children, initialRole }: { children: ReactNode; i
   const setRole = useCallback((newRole: UserRole) => {
     setRoleState(newRole);
     if (user) {
+      // Fire-and-forget: update role in DB, ignore errors (table might be unreachable)
       supabaseRef.current
         .from('profiles')
         .update({ role: newRole })
         .eq('id', user.id)
-        .then();
+        .then(({ error }) => {
+          if (error) {
+            console.warn('[RoleContext] Could not update role in DB:', error.message);
+          }
+        });
     }
   }, [user]);
 
