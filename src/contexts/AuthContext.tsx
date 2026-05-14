@@ -150,9 +150,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const supabase = supabaseRef.current;
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        return { success: false, message: error.message };
+      // Attempt login — retry once if we get a transient schema error
+      let signInError = null;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (!error) {
+          signInError = null;
+          break;
+        }
+        signInError = error;
+        // If it's a transient "schema" error, wait briefly and retry
+        if (error.message?.includes('schema') && attempt === 0) {
+          await new Promise(r => setTimeout(r, 1000));
+          continue;
+        }
+        break;
+      }
+
+      if (signInError) {
+        return { success: false, message: signInError.message };
       }
 
       if (!isMountedRef.current) {
