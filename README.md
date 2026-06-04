@@ -71,7 +71,7 @@ npm start
 
 Demo login:
 - **Username**: `user`
-- **Password**: `user`
+- **Password**: `user123`
 
 Select your role (Farmer, Buyer, Supplier, Logistics, Finance, Government) during login to see role-specific dashboard content.
 
