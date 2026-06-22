@@ -22,6 +22,7 @@ import { USER_ROLES } from '@/lib/constants';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import LanguageToggle from '@/components/shared/LanguageToggle';
+import LoadingOverlay from '@/components/shared/LoadingOverlay';
 import { UserRole } from '@/types/auth';
 
 const ROLE_ICONS: Record<UserRole, LucideIcon> = {
@@ -141,6 +142,7 @@ export default function LoginForm() {
     const result = await login(email, password);
     if (result.success) {
       router.push(result.redirectTo || '/dashboard');
+      return;
     } else {
       setError(result.message || t('login.error'));
     }
@@ -197,6 +199,7 @@ export default function LoginForm() {
                       key={role.value}
                       type="button"
                       onClick={() => applyDemoRole(role.value)}
+                      disabled={isSubmitting}
                       className={`flex items-center gap-2 rounded-2xl border px-3 py-2 text-left text-xs font-medium transition-all ${
                         selectedRole === role.value
                           ? 'border-primary-700 bg-primary-700 text-white shadow-sm'
@@ -223,6 +226,7 @@ export default function LoginForm() {
                       key={capability.titleEn}
                       type="button"
                       onClick={() => applyDemoRole(capability.role)}
+                      disabled={isSubmitting}
                       className="flex items-start gap-3 rounded-lg border border-surface-200 p-3 text-left hover:border-primary-300 hover:bg-primary-50"
                     >
                       <Icon className="mt-0.5 h-4 w-4 text-primary-700" />
@@ -246,8 +250,14 @@ export default function LoginForm() {
               </div>
             )}
 
-            <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? t('common.loading') : t('login.submit')}
+            <Button
+              type="submit"
+              size="lg"
+              className="w-full"
+              loading={isSubmitting}
+              loadingLabel={lang === 'en' ? 'Signing in...' : 'Sedang masuk...'}
+            >
+              {t('login.submit')}
             </Button>
           </form>
         </div>
@@ -281,6 +291,7 @@ export default function LoginForm() {
                     key={capability.titleEn}
                     type="button"
                     onClick={() => applyDemoRole(capability.role)}
+                    disabled={isSubmitting}
                     className="rounded-lg border border-white/10 bg-white/10 p-4 text-left text-white transition-colors hover:border-primary-300 hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-primary-300"
                   >
                     <div className="flex items-center gap-2">
@@ -300,6 +311,12 @@ export default function LoginForm() {
           </div>
         </div>
       </div>
+      {isSubmitting && (
+        <LoadingOverlay
+          title={lang === 'en' ? 'Signing you in...' : 'Sedang masuk...'}
+          description={lang === 'en' ? 'Checking your account role and preparing your dashboard.' : 'Memeriksa role akun dan menyiapkan dashboard Anda.'}
+        />
+      )}
     </div>
   );
 }

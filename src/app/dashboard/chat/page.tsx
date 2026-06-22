@@ -34,6 +34,7 @@ export default function ChatPage() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [showSidebar, setShowSidebar] = useState(false);
+  const [loadingConversationId, setLoadingConversationId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -78,30 +79,35 @@ export default function ChatPage() {
 
   const loadConversation = useCallback(async (conv: Conversation, syncUrl = true) => {
     if (!user?.id) return;
+    setLoadingConversationId(conv.id);
     const supabase = supabaseRef.current;
-    const { data } = await supabase
-      .from('chat_messages')
-      .select('id, role, content, created_at')
-      .eq('conversation_id', conv.id)
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: true })
-      .abortSignal(abortControllerRef.current?.signal ?? new AbortController().signal);
+    try {
+      const { data } = await supabase
+        .from('chat_messages')
+        .select('id, role, content, created_at')
+        .eq('conversation_id', conv.id)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true })
+        .abortSignal(abortControllerRef.current?.signal ?? new AbortController().signal);
 
-    if (!isMounted.current) return;
-    if (data) {
-      const loaded: ChatMessage[] = data.map((m) => ({
-        id: m.id,
-        role: m.role as 'user' | 'assistant',
-        content: m.content,
-        timestamp: new Date(m.created_at),
-      }));
-      setMessages(loaded);
-      setConversationId(conv.id);
-      if (syncUrl) {
-        window.history.replaceState(null, '', `/dashboard/chat?conversation=${encodeURIComponent(conv.id)}`);
+      if (!isMounted.current) return;
+      if (data) {
+        const loaded: ChatMessage[] = data.map((m) => ({
+          id: m.id,
+          role: m.role as 'user' | 'assistant',
+          content: m.content,
+          timestamp: new Date(m.created_at),
+        }));
+        setMessages(loaded);
+        setConversationId(conv.id);
+        if (syncUrl) {
+          window.history.replaceState(null, '', `/dashboard/chat?conversation=${encodeURIComponent(conv.id)}`);
+        }
       }
+      setShowSidebar(false);
+    } finally {
+      if (isMounted.current) setLoadingConversationId(null);
     }
-    setShowSidebar(false);
   }, [user?.id]);
 
   useEffect(() => {
@@ -270,12 +276,18 @@ export default function ChatPage() {
                   <button
                     key={conv.id}
                     onClick={() => loadConversation(conv)}
+                    disabled={loadingConversationId === conv.id}
+                    aria-busy={loadingConversationId === conv.id}
                     className={`w-full text-left p-2.5 rounded-lg transition-colors ${
                       conversationId === conv.id ? 'bg-primary-50 text-primary-700' : 'hover:bg-surface-50 text-gray-700'
                     }`}
                   >
                     <div className="flex items-center gap-2">
-                      <MessageSquare className="h-3.5 w-3.5 flex-shrink-0" />
+                      {loadingConversationId === conv.id ? (
+                        <Spinner size="sm" />
+                      ) : (
+                        <MessageSquare className="h-3.5 w-3.5 flex-shrink-0" />
+                      )}
                       <p className="text-sm font-medium truncate">{conv.title}</p>
                     </div>
                     <p className="text-xs text-surface-400 mt-0.5 ml-5.5">{new Date(conv.updated_at).toLocaleDateString()}</p>

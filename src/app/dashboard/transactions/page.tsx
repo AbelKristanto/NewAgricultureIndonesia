@@ -509,12 +509,8 @@ export default function TransactionsPage() {
             onChange={(e) => setForm({ ...form, note: e.target.value })}
             rows={3}
           />
-          <Button type="submit" disabled={creating}>
-            {creating ? (
-              <span className="flex items-center gap-2"><Spinner size="sm" />{t('common.loading')}</span>
-            ) : (
-              t('transactions.submit')
-            )}
+          <Button type="submit" loading={creating} loadingLabel={t('common.loading')}>
+            {t('transactions.submit')}
           </Button>
         </form>
       )}
@@ -701,7 +697,7 @@ export default function TransactionsPage() {
               />
 
               {canSubmitDraftProposal && (
-                <Button onClick={handleSubmitProposal} disabled={updatingStatus} className="w-full">
+                <Button onClick={handleSubmitProposal} loading={updatingStatus} loadingLabel={t('common.loading')} className="w-full">
                   <span className="flex items-center justify-center gap-2">
                     <Send className="h-4 w-4" />
                     {t('transactions.submitProposal')}
@@ -710,7 +706,7 @@ export default function TransactionsPage() {
               )}
 
               {canSendCounterOffer && (
-                <Button onClick={handleCounterOffer} disabled={updatingStatus} className="w-full">
+                <Button onClick={handleCounterOffer} loading={updatingStatus} loadingLabel={t('common.loading')} className="w-full">
                   <span className="flex items-center justify-center gap-2">
                     <ArrowRightLeft className="h-4 w-4" />
                     {t('transactions.sendCounterOffer')}
@@ -720,7 +716,7 @@ export default function TransactionsPage() {
 
               {canAcceptOrReject && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <Button onClick={handleAcceptOffer} disabled={updatingStatus} className="w-full">
+                  <Button onClick={handleAcceptOffer} loading={updatingStatus} loadingLabel={t('common.loading')} className="w-full">
                     <span className="flex items-center justify-center gap-2">
                       <Check className="h-4 w-4" />
                       {t('transactions.acceptOffer')}
@@ -728,7 +724,8 @@ export default function TransactionsPage() {
                   </Button>
                   <Button
                     onClick={handleRejectOffer}
-                    disabled={updatingStatus}
+                    loading={updatingStatus}
+                    loadingLabel={t('common.loading')}
                     variant="secondary"
                     className="w-full"
                   >
@@ -758,7 +755,8 @@ export default function TransactionsPage() {
                           size="sm"
                           variant={nextStatus === 'cancelled' ? 'secondary' : 'primary'}
                           onClick={() => handleStatusUpdate(selectedTx.id, nextStatus)}
-                          disabled={updatingStatus}
+                          loading={updatingStatus}
+                          loadingLabel={t('common.loading')}
                         >
                           {label}
                         </Button>

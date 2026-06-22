@@ -1,17 +1,21 @@
 import { ButtonHTMLAttributes, forwardRef } from 'react';
 import clsx from 'clsx';
+import Spinner from './Spinner';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
   size?: 'sm' | 'md' | 'lg';
+  loading?: boolean;
+  loadingLabel?: string;
 }
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = 'primary', size = 'md', disabled, children, ...props }, ref) => {
+  ({ className, variant = 'primary', size = 'md', disabled, loading = false, loadingLabel, children, ...props }, ref) => {
     return (
       <button
         ref={ref}
-        disabled={disabled}
+        disabled={disabled || loading}
+        aria-busy={loading}
         className={clsx(
           'inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed',
           {
@@ -28,7 +32,14 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         )}
         {...props}
       >
-        {children}
+        {loading ? (
+          <span className="inline-flex items-center justify-center gap-2">
+            <Spinner size="sm" />
+            {loadingLabel || children}
+          </span>
+        ) : (
+          children
+        )}
       </button>
     );
   }

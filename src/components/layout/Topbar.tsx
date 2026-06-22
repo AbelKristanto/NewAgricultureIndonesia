@@ -1,14 +1,27 @@
 'use client';
 
+import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import Logo from '@/components/brand/Logo';
 import LanguageToggle from '@/components/shared/LanguageToggle';
+import LoadingOverlay from '@/components/shared/LoadingOverlay';
+import Spinner from '@/components/ui/Spinner';
 import { LogOut, User } from 'lucide-react';
 
 export default function Topbar() {
   const { user, logout } = useAuth();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await logout();
+    } catch {
+      setIsLoggingOut(false);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-sm border-b border-surface-200">
@@ -32,17 +45,27 @@ export default function Topbar() {
                 <span className="hidden sm:inline text-sm font-medium text-gray-700">{user.username}</span>
               </div>
               <button
-                onClick={logout}
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                aria-busy={isLoggingOut}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-danger-600 hover:bg-red-50 rounded-lg transition-colors"
                 title={t('common.logout')}
               >
-                <LogOut className="h-4 w-4" />
-                <span className="hidden sm:inline">{t('common.logout')}</span>
+                {isLoggingOut ? <Spinner size="sm" /> : <LogOut className="h-4 w-4" />}
+                <span className="hidden sm:inline">
+                  {isLoggingOut ? (lang === 'en' ? 'Logging out...' : 'Keluar...') : t('common.logout')}
+                </span>
               </button>
             </div>
           )}
         </div>
       </div>
+      {isLoggingOut && (
+        <LoadingOverlay
+          title={lang === 'en' ? 'Logging out...' : 'Sedang keluar...'}
+          description={lang === 'en' ? 'Clearing your session and returning to login.' : 'Menghapus sesi dan kembali ke halaman login.'}
+        />
+      )}
     </header>
   );
 }
