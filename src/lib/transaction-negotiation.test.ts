@@ -5,6 +5,8 @@ import {
   canRespondToLatestOffer,
   createNegotiationEntry,
   getLatestNegotiationEntry,
+  canAccessTransaction,
+  getTransactionParticipantLabel,
   getTransactionParty,
   isStatusTransitionAllowed,
   parseTransactionTerms,
@@ -78,6 +80,22 @@ describe('transaction-negotiation helpers', () => {
     expect(getTransactionParty({ buyer_id: 'buyer-1', farmer_id: 'farmer-1' }, 'buyer-1')).toBe('buyer');
     expect(getTransactionParty({ buyer_id: 'buyer-1', farmer_id: 'farmer-1' }, 'farmer-1')).toBe('farmer');
     expect(getTransactionParty({ buyer_id: 'buyer-1', farmer_id: 'farmer-1' }, 'other')).toBeNull();
+  });
+
+  it('allows additional transaction participants from terms', () => {
+    const transaction = {
+      buyer_id: 'buyer-1',
+      farmer_id: 'farmer-1',
+      terms: {
+        participants: [
+          { user_id: 'supplier-1', role: 'supplier', label: 'Supplier' },
+        ],
+      },
+    };
+
+    expect(canAccessTransaction(transaction, 'supplier-1')).toBe(true);
+    expect(getTransactionParticipantLabel(transaction, 'supplier-1')).toBe('Supplier');
+    expect(canAccessTransaction(transaction, 'other')).toBe(false);
   });
 
   it('validates allowed status transitions', () => {

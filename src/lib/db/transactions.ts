@@ -1,5 +1,6 @@
 import { SupabaseClient } from '@supabase/supabase-js';
-import { TransactionTerms } from '@/types/transaction';
+import { Transaction, TransactionTerms } from '@/types/transaction';
+import { canAccessTransaction } from '@/lib/transaction-negotiation';
 
 export async function createTransaction(
   supabase: SupabaseClient,
@@ -37,12 +38,13 @@ export async function getUserTransactions(
   const { data, error } = await supabase
     .from('transactions')
     .select('*')
-    .or(`buyer_id.eq.${userId},farmer_id.eq.${userId}`)
     .order('created_at', { ascending: false })
-    .limit(limit);
+    .limit(100);
 
   if (error) throw error;
-  return data || [];
+  return ((data || []) as Transaction[])
+    .filter((transaction) => canAccessTransaction(transaction, userId))
+    .slice(0, limit);
 }
 
 export async function getTransactionById(

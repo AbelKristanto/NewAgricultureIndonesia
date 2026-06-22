@@ -52,6 +52,14 @@ export function parseTransactionTerms(terms: unknown): TransactionTerms {
     return { negotiationHistory: [] };
   }
 
+  const participants = Array.isArray(terms.participants)
+    ? terms.participants.filter(isObject).map((participant) => ({
+        user_id: typeof participant.user_id === 'string' ? participant.user_id : '',
+        role: typeof participant.role === 'string' ? participant.role : 'participant',
+        label: typeof participant.label === 'string' ? participant.label : null,
+      })).filter((participant) => participant.user_id.length > 0)
+    : [];
+
   const history = Array.isArray(terms.negotiationHistory)
     ? terms.negotiationHistory.filter(isObject).map((entry) => ({
         id: typeof entry.id === 'string' ? entry.id : crypto.randomUUID(),
@@ -73,6 +81,7 @@ export function parseTransactionTerms(terms: unknown): TransactionTerms {
 
   return {
     note: typeof terms.note === 'string' ? terms.note : null,
+    participants,
     negotiationHistory: history,
   };
 }
@@ -140,6 +149,25 @@ export function getTransactionParty(
   if (transaction.buyer_id === userId) return 'buyer';
   if (transaction.farmer_id === userId) return 'farmer';
   return null;
+}
+
+export function canAccessTransaction(
+  transaction: Pick<Transaction, 'buyer_id' | 'farmer_id' | 'terms'>,
+  userId: string
+): boolean {
+  if (getTransactionParty(transaction, userId)) return true;
+  return parseTransactionTerms(transaction.terms).participants?.some((participant) => participant.user_id === userId) ?? false;
+}
+
+export function getTransactionParticipantLabel(
+  transaction: Pick<Transaction, 'buyer_id' | 'farmer_id' | 'terms'>,
+  userId: string
+): string | null {
+  const party = getTransactionParty(transaction, userId);
+  if (party) return party;
+
+  const participant = parseTransactionTerms(transaction.terms).participants?.find((item) => item.user_id === userId);
+  return participant?.label || participant?.role || null;
 }
 
 export function isStatusTransitionAllowed(

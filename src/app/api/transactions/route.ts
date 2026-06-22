@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { createTransaction, getUserTransactions } from '@/lib/db/transactions';
 import { CreateTransactionInput } from '@/types/transaction';
 import {
@@ -20,12 +20,8 @@ export async function GET(request: Request) {
     return createUnauthorizedResponse();
   }
 
-  if (ctx.userRole !== 'buyer') {
-    return createForbiddenResponse('Only buyers can create transactions');
-  }
-
   try {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const transactions = await getUserTransactions(supabase, ctx.userId);
     return NextResponse.json({ success: true, data: transactions });
   } catch (error) {
@@ -44,10 +40,12 @@ export async function POST(request: Request) {
     return createUnauthorizedResponse();
   }
 
-  // All authenticated roles permitted — no role check needed
+  if (ctx.userRole !== 'buyer') {
+    return createForbiddenResponse('Only buyers can create transactions');
+  }
 
   try {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const body: CreateTransactionInput = await request.json();
 
     const transaction = await createTransaction(supabase, ctx.userId, {

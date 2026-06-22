@@ -22,20 +22,33 @@ export async function GET(request: Request) {
     const admin = createAdminClient();
 
     // Fetch all data from all analysis tables + transactions in parallel
-    const [farmers, buyers, policies, matchings, weathers, transactions, profiles] = await Promise.all([
+    const [farmers, buyers, policies, matchings, weathers, transactions, profiles, authUsers] = await Promise.all([
       admin.from('farmer_analyses').select('id, user_id, input, result, created_at').order('created_at', { ascending: false }),
       admin.from('buyer_analyses').select('id, user_id, input, result, created_at').order('created_at', { ascending: false }),
       admin.from('policy_analyses').select('id, user_id, input, result, created_at').order('created_at', { ascending: false }),
       admin.from('matching_analyses').select('id, user_id, input, result, created_at').order('created_at', { ascending: false }),
       admin.from('weather_analyses').select('id, user_id, input, result, created_at').order('created_at', { ascending: false }),
       admin.from('transactions').select('*').order('created_at', { ascending: false }),
-      admin.from('profiles').select('id, email, full_name, role, province'),
+      admin.from('profiles').select('id, username, role'),
+      admin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
     ]);
+
+    const authUserById = new Map((authUsers.data?.users || []).map((user) => [user.id, user]));
+    const normalizedProfiles = (profiles.data || []).map((profile) => {
+      const authUser = authUserById.get(profile.id);
+      return {
+        id: profile.id,
+        email: authUser?.email || '',
+        full_name: profile.username,
+        role: profile.role,
+        province: '',
+      };
+    });
 
     return NextResponse.json({
       success: true,
       data: {
-        profiles: profiles.data || [],
+        profiles: normalizedProfiles,
         farmerAnalyses: farmers.data || [],
         buyerAnalyses: buyers.data || [],
         policyAnalyses: policies.data || [],
@@ -43,7 +56,7 @@ export async function GET(request: Request) {
         weatherAnalyses: weathers.data || [],
         transactions: transactions.data || [],
         counts: {
-          profiles: (profiles.data || []).length,
+          profiles: normalizedProfiles.length,
           farmerAnalyses: (farmers.data || []).length,
           buyerAnalyses: (buyers.data || []).length,
           policyAnalyses: (policies.data || []).length,

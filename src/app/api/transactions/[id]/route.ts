@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { getTransactionById, updateTransaction } from '@/lib/db/transactions';
 import { TransactionStatus } from '@/types/transaction';
 import {
   appendNegotiationEntry,
   calculateTransactionTotalValue,
+  canAccessTransaction,
   canRespondToLatestOffer,
   createNegotiationEntry,
   getTransactionParty,
@@ -28,7 +29,7 @@ export async function GET(
   // All authenticated roles permitted — no role check needed
 
   try {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const { id } = await params;
     const transaction = await getTransactionById(supabase, id);
 
@@ -37,7 +38,7 @@ export async function GET(
     }
 
     // Ensure the user is a party to this transaction
-    if (transaction.buyer_id !== ctx.userId && transaction.farmer_id !== ctx.userId) {
+    if (!canAccessTransaction(transaction, ctx.userId)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -71,7 +72,7 @@ export async function PATCH(
   // All authenticated roles permitted — no role check needed
 
   try {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const { id } = await params;
 
     // Verify the user is a party to this transaction before allowing update
@@ -79,13 +80,13 @@ export async function PATCH(
     if (!existing) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
-    if (existing.buyer_id !== ctx.userId && existing.farmer_id !== ctx.userId) {
+    if (!canAccessTransaction(existing, ctx.userId)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const actorParty = getTransactionParty(existing, ctx.userId);
     if (!actorParty) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return NextResponse.json({ error: 'Only buyers and farmers can negotiate this transaction' }, { status: 403 });
     }
 
     const body = await request.json() as {

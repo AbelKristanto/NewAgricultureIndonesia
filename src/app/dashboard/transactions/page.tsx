@@ -15,6 +15,7 @@ import {
   canRespondToLatestOffer,
   getLatestNegotiationEntry,
   getTransactionParty,
+  getTransactionParticipantLabel,
   parseTransactionTerms,
 } from '@/lib/transaction-negotiation';
 import Button from '@/components/ui/Button';
@@ -89,6 +90,9 @@ export default function TransactionsPage() {
   );
   const canCreateTransaction = user?.role === 'buyer';
   const currentParty = selectedTx && user ? getTransactionParty(selectedTx, user.id) : null;
+  const currentParticipantLabel = selectedTx && user && !currentParty
+    ? getTransactionParticipantLabel(selectedTx, user.id)
+    : null;
   const canRespond = selectedTx && user ? canRespondToLatestOffer(selectedTx.terms, user.id) : false;
 
   useEffect(() => {
@@ -495,7 +499,7 @@ export default function TransactionsPage() {
             <div>
               <h2 className="text-lg font-semibold text-gray-900">{t('transactions.detail')}</h2>
               <p className="text-sm text-surface-500 mt-1">
-                {t('transactions.yourRole')}: {getPartyLabel(currentParty)}
+                {t('transactions.yourRole')}: {currentParticipantLabel || getPartyLabel(currentParty)}
               </p>
             </div>
             <button onClick={() => setSelectedTx(null)} className="text-surface-400 hover:text-gray-700">
