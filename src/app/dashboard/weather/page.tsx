@@ -11,6 +11,7 @@ import Select from '@/components/ui/Select';
 import Textarea from '@/components/ui/Textarea';
 import Spinner from '@/components/ui/Spinner';
 import ResultSection from '@/components/shared/ResultSection';
+import FormInfoButton from '@/components/shared/FormInfoButton';
 import ReactMarkdown from 'react-markdown';
 import { CloudRain, Sprout, Droplets, Calendar, Shield, AlertTriangle, History, ChevronDown, ChevronUp } from 'lucide-react';
 
@@ -104,6 +105,9 @@ export default function WeatherPage() {
 
   useEffect(() => {
     if (!user?.id) return;
+    isMounted.current = true;
+    abortControllerRef.current?.abort();
+
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
     const supabase = supabaseRef.current;
@@ -166,21 +170,23 @@ export default function WeatherPage() {
         <p className="text-surface-500 mt-1">{t('weather.subtitle')}</p>
       </div>
 
-      {history.length > 0 && (
-        <div className="bg-white rounded-xl border border-surface-200">
-          <button
-            onClick={() => setShowHistory(!showHistory)}
-            className="w-full flex items-center justify-between p-4 text-left"
-          >
-            <div className="flex items-center gap-2">
-              <History className="h-4 w-4 text-surface-500" />
-              <span className="text-sm font-medium text-gray-700">{t('common.history')} ({history.length})</span>
-            </div>
-            {showHistory ? <ChevronUp className="h-4 w-4 text-surface-400" /> : <ChevronDown className="h-4 w-4 text-surface-400" />}
-          </button>
-          {showHistory && (
-            <div className="border-t border-surface-100 p-3 space-y-1 max-h-60 overflow-y-auto">
-              {history.map((item) => {
+      <div className="bg-white rounded-xl border border-surface-200">
+        <button
+          onClick={() => setShowHistory(!showHistory)}
+          className="w-full flex items-center justify-between p-4 text-left"
+        >
+          <div className="flex items-center gap-2">
+            <History className="h-4 w-4 text-surface-500" />
+            <span className="text-sm font-medium text-gray-700">{t('common.history')} ({history.length})</span>
+          </div>
+          {showHistory ? <ChevronUp className="h-4 w-4 text-surface-400" /> : <ChevronDown className="h-4 w-4 text-surface-400" />}
+        </button>
+        {showHistory && (
+          <div className="border-t border-surface-100 p-3 space-y-1 max-h-60 overflow-y-auto">
+            {history.length === 0 ? (
+              <p className="text-sm text-surface-400 p-2">{t('common.noHistory')}</p>
+            ) : (
+              history.map((item) => {
                 const inp = item.input as Record<string, unknown>;
                 const regions = inp.regions as string[] | undefined;
                 return (
@@ -193,13 +199,31 @@ export default function WeatherPage() {
                     <p className="text-xs text-surface-400">{new Date(item.created_at).toLocaleDateString()}</p>
                   </button>
                 );
-              })}
-            </div>
-          )}
-        </div>
-      )}
+              })
+            )}
+          </div>
+        )}
+      </div>
 
       <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-surface-200 p-6 space-y-6">
+        <div className="flex flex-col gap-3 rounded-lg border border-primary-100 bg-primary-50/50 p-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-gray-900">{lang === 'en' ? 'Weather Intelligence Form' : 'Form Intelijen Cuaca'}</h2>
+            <p className="mt-1 text-sm text-surface-600">
+              {lang === 'en'
+                ? 'Choose the region, crop, scenario, and season to estimate operational risks and mitigation steps.'
+                : 'Pilih wilayah, komoditas, skenario, dan musim untuk membaca risiko operasional serta langkah mitigasi.'}
+            </p>
+          </div>
+          <FormInfoButton
+            title={lang === 'en' ? 'How weather analysis works' : 'Cara membaca analisis cuaca'}
+            description={lang === 'en' ? 'The result focuses on crop impact, schedule changes, irrigation, and risk controls for the selected scenario.' : 'Hasilnya fokus ke dampak tanaman, perubahan jadwal, irigasi, dan kontrol risiko untuk skenario yang dipilih.'}
+            tips={lang === 'en'
+              ? ['Select the region closest to the farm or route.', 'Use notes for local issues like flooding, drought, or road access.', 'Use this before locking transaction dates.']
+              : ['Pilih wilayah yang paling dekat dengan lahan atau rute.', 'Gunakan catatan untuk isu lokal seperti banjir, kekeringan, atau akses jalan.', 'Pakai ini sebelum mengunci tanggal transaksi.']}
+          />
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Select
             id="region"

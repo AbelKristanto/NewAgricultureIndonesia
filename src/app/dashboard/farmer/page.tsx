@@ -12,6 +12,7 @@ import Select from '@/components/ui/Select';
 import Textarea from '@/components/ui/Textarea';
 import Spinner from '@/components/ui/Spinner';
 import ResultSection from '@/components/shared/ResultSection';
+import FormInfoButton from '@/components/shared/FormInfoButton';
 import ReactMarkdown from 'react-markdown';
 import { Wheat, BarChart3, DollarSign, CloudRain, Users, Package, Landmark, History, ChevronDown, ChevronUp } from 'lucide-react';
 
@@ -70,6 +71,9 @@ export default function FarmerPage() {
   // Load history on mount
   useEffect(() => {
     if (!user?.id) return;
+    isMounted.current = true;
+    abortControllerRef.current?.abort();
+
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
     const supabase = supabaseRef.current;
@@ -188,21 +192,23 @@ export default function FarmerPage() {
       </div>
 
       {/* History Panel */}
-      {history.length > 0 && (
-        <div className="bg-white rounded-xl border border-surface-200">
-          <button
-            onClick={() => setShowHistory(!showHistory)}
-            className="w-full flex items-center justify-between p-4 text-left"
-          >
-            <div className="flex items-center gap-2">
-              <History className="h-4 w-4 text-surface-500" />
-              <span className="text-sm font-medium text-gray-700">{t('common.history')} ({history.length})</span>
-            </div>
-            {showHistory ? <ChevronUp className="h-4 w-4 text-surface-400" /> : <ChevronDown className="h-4 w-4 text-surface-400" />}
-          </button>
-          {showHistory && (
-            <div className="border-t border-surface-100 p-3 space-y-1 max-h-60 overflow-y-auto">
-              {history.map((item) => {
+      <div className="bg-white rounded-xl border border-surface-200">
+        <button
+          onClick={() => setShowHistory(!showHistory)}
+          className="w-full flex items-center justify-between p-4 text-left"
+        >
+          <div className="flex items-center gap-2">
+            <History className="h-4 w-4 text-surface-500" />
+            <span className="text-sm font-medium text-gray-700">{t('common.history')} ({history.length})</span>
+          </div>
+          {showHistory ? <ChevronUp className="h-4 w-4 text-surface-400" /> : <ChevronDown className="h-4 w-4 text-surface-400" />}
+        </button>
+        {showHistory && (
+          <div className="border-t border-surface-100 p-3 space-y-1 max-h-60 overflow-y-auto">
+            {history.length === 0 ? (
+              <p className="text-sm text-surface-400 p-2">{t('common.noHistory')}</p>
+            ) : (
+              history.map((item) => {
                 const inp = item.input as Record<string, string>;
                 return (
                   <button
@@ -214,13 +220,31 @@ export default function FarmerPage() {
                     <p className="text-xs text-surface-400">{new Date(item.created_at).toLocaleDateString()}</p>
                   </button>
                 );
-              })}
-            </div>
-          )}
-        </div>
-      )}
+              })
+            )}
+          </div>
+        )}
+      </div>
 
       <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-surface-200 p-6 space-y-6">
+        <div className="flex flex-col gap-3 rounded-lg border border-primary-100 bg-primary-50/50 p-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-gray-900">{lang === 'en' ? 'Land Analysis Form' : 'Form Analisis Lahan'}</h2>
+            <p className="mt-1 text-sm text-surface-600">
+              {lang === 'en'
+                ? 'Fill in the farm condition so AI can recommend crops, costs, risks, and buyer opportunities.'
+                : 'Isi kondisi lahan agar AI bisa memberi rekomendasi tanaman, biaya, risiko, dan peluang pembeli.'}
+            </p>
+          </div>
+          <FormInfoButton
+            title={lang === 'en' ? 'How to fill this form' : 'Cara mengisi form'}
+            description={lang === 'en' ? 'Use the most recent field condition. Estimates work best when land size, soil, water source, and budget are realistic.' : 'Gunakan kondisi lahan terbaru. Estimasi paling bagus kalau luas lahan, jenis tanah, sumber air, dan budget diisi realistis.'}
+            tips={lang === 'en'
+              ? ['Select province first, then add a district or regency name.', 'Use numeric values for land size and budget.', 'Add constraints in notes, such as flood risk or labor availability.']
+              : ['Pilih provinsi dulu, lalu isi kabupaten/kecamatan.', 'Gunakan angka untuk luas lahan dan budget.', 'Tambahkan kendala di catatan, misalnya banjir atau tenaga kerja terbatas.']}
+          />
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Select
             id="province"

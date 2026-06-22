@@ -12,6 +12,7 @@ import Select from '@/components/ui/Select';
 import Textarea from '@/components/ui/Textarea';
 import Spinner from '@/components/ui/Spinner';
 import ResultSection from '@/components/shared/ResultSection';
+import FormInfoButton from '@/components/shared/FormInfoButton';
 import ReactMarkdown from 'react-markdown';
 import { MapPin, BarChart3, Truck, Clock, DollarSign, ThumbsUp, History, ChevronDown, ChevronUp } from 'lucide-react';
 
@@ -111,6 +112,9 @@ export default function MatchingPage() {
 
   useEffect(() => {
     if (!user?.id) return;
+    isMounted.current = true;
+    abortControllerRef.current?.abort();
+
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
     const supabase = supabaseRef.current;
@@ -174,21 +178,23 @@ export default function MatchingPage() {
         <p className="text-surface-500 mt-1">{t('matching.subtitle')}</p>
       </div>
 
-      {history.length > 0 && (
-        <div className="bg-white rounded-xl border border-surface-200">
-          <button
-            onClick={() => setShowHistory(!showHistory)}
-            className="w-full flex items-center justify-between p-4 text-left"
-          >
-            <div className="flex items-center gap-2">
-              <History className="h-4 w-4 text-surface-500" />
-              <span className="text-sm font-medium text-gray-700">{t('common.history')} ({history.length})</span>
-            </div>
-            {showHistory ? <ChevronUp className="h-4 w-4 text-surface-400" /> : <ChevronDown className="h-4 w-4 text-surface-400" />}
-          </button>
-          {showHistory && (
-            <div className="border-t border-surface-100 p-3 space-y-1 max-h-60 overflow-y-auto">
-              {history.map((item) => {
+      <div className="bg-white rounded-xl border border-surface-200">
+        <button
+          onClick={() => setShowHistory(!showHistory)}
+          className="w-full flex items-center justify-between p-4 text-left"
+        >
+          <div className="flex items-center gap-2">
+            <History className="h-4 w-4 text-surface-500" />
+            <span className="text-sm font-medium text-gray-700">{t('common.history')} ({history.length})</span>
+          </div>
+          {showHistory ? <ChevronUp className="h-4 w-4 text-surface-400" /> : <ChevronDown className="h-4 w-4 text-surface-400" />}
+        </button>
+        {showHistory && (
+          <div className="border-t border-surface-100 p-3 space-y-1 max-h-60 overflow-y-auto">
+            {history.length === 0 ? (
+              <p className="text-sm text-surface-400 p-2">{t('common.noHistory')}</p>
+            ) : (
+              history.map((item) => {
                 const inp = item.input as Record<string, string>;
                 return (
                   <button
@@ -200,13 +206,31 @@ export default function MatchingPage() {
                     <p className="text-xs text-surface-400">{new Date(item.created_at).toLocaleDateString()}</p>
                   </button>
                 );
-              })}
-            </div>
-          )}
-        </div>
-      )}
+              })
+            )}
+          </div>
+        )}
+      </div>
 
       <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-surface-200 p-6 space-y-6">
+        <div className="flex flex-col gap-3 rounded-lg border border-primary-100 bg-primary-50/50 p-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-gray-900">{lang === 'en' ? 'Supply Matching Form' : 'Form Pencocokan Pasokan'}</h2>
+            <p className="mt-1 text-sm text-surface-600">
+              {lang === 'en'
+                ? 'Use this to compare likely supply regions, capacity, logistics feasibility, and price fit.'
+                : 'Gunakan form ini untuk membandingkan daerah pasokan, kapasitas, kelayakan logistik, dan kecocokan harga.'}
+            </p>
+          </div>
+          <FormInfoButton
+            title={lang === 'en' ? 'Better matching input' : 'Input agar matching lebih akurat'}
+            description={lang === 'en' ? 'The model matches demand to production regions based on commodity, volume, destination, quality, and timeline.' : 'Model mencocokkan kebutuhan dengan daerah produksi berdasarkan komoditas, volume, tujuan, kualitas, dan timeline.'}
+            tips={lang === 'en'
+              ? ['Use the real destination city for logistics estimates.', 'Choose quality grade to filter realistic supplier options.', 'Write constraints in notes, such as cold chain, packaging, or urgent delivery.']
+              : ['Isi kota tujuan sebenarnya untuk estimasi logistik.', 'Pilih grade kualitas agar opsi supplier lebih realistis.', 'Tulis batasan di catatan, misalnya cold chain, kemasan, atau pengiriman cepat.']}
+          />
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Select
             id="commodity"

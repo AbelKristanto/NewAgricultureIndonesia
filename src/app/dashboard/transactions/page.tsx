@@ -24,6 +24,7 @@ import Select from '@/components/ui/Select';
 import Spinner from '@/components/ui/Spinner';
 import Badge from '@/components/ui/Badge';
 import Textarea from '@/components/ui/Textarea';
+import FormInfoButton from '@/components/shared/FormInfoButton';
 import {
   ArrowRightLeft,
   Check,
@@ -411,7 +412,23 @@ export default function TransactionsPage() {
 
       {canCreateTransaction && showForm && (
         <form onSubmit={handleCreate} className="bg-white rounded-xl border border-surface-200 p-6 space-y-6">
-          <h2 className="text-lg font-semibold text-gray-900">{t('transactions.newTransaction')}</h2>
+          <div className="flex flex-col gap-3 rounded-lg border border-primary-100 bg-primary-50/50 p-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">{t('transactions.newTransaction')}</h2>
+              <p className="mt-1 text-sm text-surface-600">
+                {lang === 'en'
+                  ? 'Create a transaction draft that can be negotiated and tracked by permitted roles.'
+                  : 'Buat draft transaksi yang bisa dinegosiasikan dan dipantau oleh role yang punya akses.'}
+              </p>
+            </div>
+            <FormInfoButton
+              title={lang === 'en' ? 'Transaction setup tips' : 'Tips membuat transaksi'}
+              description={lang === 'en' ? 'Commodity, volume, delivery location, price, and date range become the first offer used in negotiation.' : 'Komoditas, volume, lokasi kirim, harga, dan rentang tanggal menjadi penawaran awal untuk negosiasi.'}
+              tips={lang === 'en'
+                ? ['Leave price empty if it still needs discussion.', 'Use delivery dates as realistic windows, not single-day promises.', 'Add quality, packaging, or payment notes in the note field.']
+                : ['Kosongkan harga kalau masih perlu diskusi.', 'Gunakan tanggal kirim sebagai rentang realistis, bukan janji satu hari.', 'Isi kualitas, kemasan, atau pembayaran di catatan.']}
+            />
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Select
               id="tx-commodity"

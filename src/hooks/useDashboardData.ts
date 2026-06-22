@@ -163,9 +163,7 @@ async function fetchMetrics(
       case 'transactions':
         fetchers.push({
           key: 'transactions',
-          promise: isGovernment
-            ? fetchCount(supabase, 'transactions', null, null, signal)
-            : fetchTransactionCount(signal),
+          promise: fetchTransactionCount(signal),
         });
         break;
       case 'policyAnalyses':
@@ -286,16 +284,16 @@ async function fetchRecentActivity(
       (async (): Promise<RecentActivityItem[]> => {
         const { data } = await supabase
           .from('chat_conversations')
-          .select('title, created_at')
+          .select('id, title, created_at')
           .eq('user_id', userId)
           .order('created_at', { ascending: false })
           .limit(5)
           .abortSignal(signal);
-        return (data || []).map((row: { title: string | null; created_at: string }) => ({
+        return (data || []).map((row: { id: string; title: string | null; created_at: string }) => ({
           type: 'Chat',
           title: row.title || 'Chat',
           created_at: row.created_at,
-          href: '/dashboard/chat',
+          href: `/dashboard/chat?conversation=${encodeURIComponent(row.id)}`,
         }));
       })()
     );

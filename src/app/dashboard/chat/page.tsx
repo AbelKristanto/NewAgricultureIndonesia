@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import Logo from '@/components/brand/Logo';
@@ -19,6 +19,8 @@ interface Conversation {
 export default function ChatPage() {
   const { t, lang } = useLanguage();
   const { user } = useAuth();
+  const requestedConversationId =
+    typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('conversation');
   const supabaseRef = useRef(createClient());
   const isMounted = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -46,6 +48,9 @@ export default function ChatPage() {
   // Load conversations list
   useEffect(() => {
     if (!user?.id) return;
+    isMounted.current = true;
+    abortControllerRef.current?.abort();
+
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
     const supabase = supabaseRef.current;
@@ -71,13 +76,14 @@ export default function ChatPage() {
     };
   }, [user?.id]);
 
-  const loadConversation = async (conv: Conversation) => {
+  const loadConversation = useCallback(async (conv: Conversation, syncUrl = true) => {
+    if (!user?.id) return;
     const supabase = supabaseRef.current;
     const { data } = await supabase
       .from('chat_messages')
       .select('id, role, content, created_at')
       .eq('conversation_id', conv.id)
-      .eq('user_id', user!.id)
+      .eq('user_id', user.id)
       .order('created_at', { ascending: true })
       .abortSignal(abortControllerRef.current?.signal ?? new AbortController().signal);
 
@@ -91,9 +97,23 @@ export default function ChatPage() {
       }));
       setMessages(loaded);
       setConversationId(conv.id);
+      if (syncUrl) {
+        window.history.replaceState(null, '', `/dashboard/chat?conversation=${encodeURIComponent(conv.id)}`);
+      }
     }
     setShowSidebar(false);
-  };
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!requestedConversationId || conversations.length === 0 || conversationId === requestedConversationId) {
+      return;
+    }
+
+    const requestedConversation = conversations.find((conv) => conv.id === requestedConversationId);
+    if (requestedConversation) {
+      void loadConversation(requestedConversation, false);
+    }
+  }, [conversationId, conversations, loadConversation, requestedConversationId]);
 
   const startNewChat = () => {
     setMessages([
@@ -101,6 +121,7 @@ export default function ChatPage() {
     ]);
     setConversationId(null);
     setShowSidebar(false);
+    window.history.replaceState(null, '', '/dashboard/chat');
     inputRef.current?.focus();
   };
 

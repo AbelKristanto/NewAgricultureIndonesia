@@ -201,7 +201,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             console.log('[AuthContext] Profile created successfully');
           }
         } catch (createErr) {
-          console.warn('[AuthContext] Could not create profile, using defaults');
+          console.warn('[AuthContext] Could not create profile, using defaults:', createErr);
         }
       }
 

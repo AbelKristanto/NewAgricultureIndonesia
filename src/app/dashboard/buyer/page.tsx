@@ -12,6 +12,7 @@ import Select from '@/components/ui/Select';
 import Textarea from '@/components/ui/Textarea';
 import Spinner from '@/components/ui/Spinner';
 import ResultSection from '@/components/shared/ResultSection';
+import FormInfoButton from '@/components/shared/FormInfoButton';
 import ReactMarkdown from 'react-markdown';
 import { MapPin, BarChart3, Truck, Clock, AlertTriangle, Users, History, ChevronDown, ChevronUp } from 'lucide-react';
 
@@ -121,6 +122,9 @@ export default function BuyerPage() {
   // Load history on mount
   useEffect(() => {
     if (!user?.id) return;
+    isMounted.current = true;
+    abortControllerRef.current?.abort();
+
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
     const supabase = supabaseRef.current;
@@ -194,21 +198,23 @@ export default function BuyerPage() {
       </div>
 
       {/* History Panel */}
-      {history.length > 0 && (
-        <div className="bg-white rounded-xl border border-surface-200">
-          <button
-            onClick={() => setShowHistory(!showHistory)}
-            className="w-full flex items-center justify-between p-4 text-left"
-          >
-            <div className="flex items-center gap-2">
-              <History className="h-4 w-4 text-surface-500" />
-              <span className="text-sm font-medium text-gray-700">{t('common.history')} ({history.length})</span>
-            </div>
-            {showHistory ? <ChevronUp className="h-4 w-4 text-surface-400" /> : <ChevronDown className="h-4 w-4 text-surface-400" />}
-          </button>
-          {showHistory && (
-            <div className="border-t border-surface-100 p-3 space-y-1 max-h-60 overflow-y-auto">
-              {history.map((item) => {
+      <div className="bg-white rounded-xl border border-surface-200">
+        <button
+          onClick={() => setShowHistory(!showHistory)}
+          className="w-full flex items-center justify-between p-4 text-left"
+        >
+          <div className="flex items-center gap-2">
+            <History className="h-4 w-4 text-surface-500" />
+            <span className="text-sm font-medium text-gray-700">{t('common.history')} ({history.length})</span>
+          </div>
+          {showHistory ? <ChevronUp className="h-4 w-4 text-surface-400" /> : <ChevronDown className="h-4 w-4 text-surface-400" />}
+        </button>
+        {showHistory && (
+          <div className="border-t border-surface-100 p-3 space-y-1 max-h-60 overflow-y-auto">
+            {history.length === 0 ? (
+              <p className="text-sm text-surface-400 p-2">{t('common.noHistory')}</p>
+            ) : (
+              history.map((item) => {
                 const inp = item.input as Record<string, string>;
                 return (
                   <button
@@ -220,13 +226,31 @@ export default function BuyerPage() {
                     <p className="text-xs text-surface-400">{new Date(item.created_at).toLocaleDateString()}</p>
                   </button>
                 );
-              })}
-            </div>
-          )}
-        </div>
-      )}
+              })
+            )}
+          </div>
+        )}
+      </div>
 
       <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-surface-200 p-6 space-y-6">
+        <div className="flex flex-col gap-3 rounded-lg border border-primary-100 bg-primary-50/50 p-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-gray-900">{lang === 'en' ? 'Sourcing Request Form' : 'Form Kebutuhan Pasokan'}</h2>
+            <p className="mt-1 text-sm text-surface-600">
+              {lang === 'en'
+                ? 'Describe what you need so AI can suggest regions, suppliers, logistics, and supply risks.'
+                : 'Jelaskan kebutuhan pembelian agar AI bisa menyarankan daerah produksi, supplier, logistik, dan risiko pasokan.'}
+            </p>
+          </div>
+          <FormInfoButton
+            title={lang === 'en' ? 'What buyer data matters?' : 'Data buyer yang penting'}
+            description={lang === 'en' ? 'Volume, delivery location, schedule, and budget range are used to estimate feasibility and supplier fit.' : 'Volume, lokasi kirim, jadwal, dan rentang budget dipakai untuk menilai kelayakan dan kecocokan supplier.'}
+            tips={lang === 'en'
+              ? ['Use monthly or weekly frequency for recurring demand.', 'Budget min and max help the model flag price risks.', 'Add certification, freshness, or packaging needs in special requirements.']
+              : ['Gunakan frekuensi bulanan/mingguan untuk kebutuhan rutin.', 'Budget minimum dan maksimum membantu membaca risiko harga.', 'Isi sertifikasi, kesegaran, atau kemasan khusus di kebutuhan tambahan.']}
+          />
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Select
             id="commodity"

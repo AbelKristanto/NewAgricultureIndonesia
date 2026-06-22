@@ -3,10 +3,9 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { getDefaultDashboardPage, isApiRoutePermitted, isPagePermitted, normalizeUserRole } from '@/lib/rbac';
 import type { UserRole } from '@/types/auth';
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Skip middleware entirely for non-protected routes
   const isDashboard = pathname.startsWith('/dashboard');
   const isApi = pathname.startsWith('/api');
   const isLogin = pathname === '/login';
@@ -15,7 +14,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Create Supabase server client with cookie handling
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -39,7 +37,6 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Get user session — wrapped in try/catch for resilience
   let user = null;
   try {
     const { data, error } = await supabase.auth.getUser();
@@ -47,10 +44,9 @@ export async function middleware(request: NextRequest) {
       user = data.user;
     }
   } catch {
-    // Auth check failed — treat as unauthenticated
+    // Auth check failed; treat as unauthenticated.
   }
 
-  // Unauthenticated users
   if (!user) {
     if (isLogin) {
       return supabaseResponse;
@@ -66,7 +62,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Resolve role from auth metadata first, then prefer profile value when available.
   let role: UserRole | null = normalizeUserRole(user.user_metadata?.role);
   try {
     const { data: profile } = await supabase
@@ -76,7 +71,7 @@ export async function middleware(request: NextRequest) {
       .single();
     role = normalizeUserRole(profile?.role) ?? role;
   } catch {
-    // Profile query failed — continue with metadata role if available
+    // Profile query failed; continue with metadata role if available.
   }
 
   if (isLogin) {
@@ -85,7 +80,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Dashboard page access control
   if (isDashboard) {
     if (pathname !== '/dashboard' && !isPagePermitted(role, pathname)) {
       const url = request.nextUrl.clone();
@@ -95,7 +89,6 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse;
   }
 
-  // API routes — attach user context headers
   if (isApi) {
     if (!isApiRoutePermitted(role, pathname)) {
       return NextResponse.json(
@@ -114,7 +107,6 @@ export async function middleware(request: NextRequest) {
       request: { headers: requestHeaders },
     });
 
-    // Preserve auth cookies
     supabaseResponse.cookies.getAll().forEach((cookie) => {
       response.cookies.set(cookie.name, cookie.value);
     });
