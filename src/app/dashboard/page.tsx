@@ -39,42 +39,49 @@ function timeAgo(dateStr: string, lang: string): string {
 /** Maps metric card keys to their translation keys, icons, and color classes */
 const METRIC_CARD_CONFIG: Record<
   string,
-  { labelKey: string; icon: typeof Wheat; color: string }
+  { labelKey: string; icon: typeof Wheat; color: string; href: string }
 > = {
   farmerAnalyses: {
     labelKey: 'dashboard.metrics.farmerAnalyses',
     icon: Wheat,
     color: 'text-primary-600 bg-primary-50',
+    href: '/dashboard/farmer',
   },
   buyerAnalyses: {
     labelKey: 'dashboard.metrics.buyerAnalyses',
     icon: ShoppingCart,
     color: 'text-secondary-600 bg-secondary-50',
+    href: '/dashboard/buyer',
   },
   chatConversations: {
     labelKey: 'dashboard.metrics.chatConversations',
     icon: MessageSquare,
     color: 'text-green-600 bg-green-50',
+    href: '/dashboard/chat',
   },
   weatherAnalyses: {
     labelKey: 'dashboard.metrics.weatherAnalyses',
     icon: CloudSun,
     color: 'text-sky-600 bg-sky-50',
+    href: '/dashboard/weather',
   },
   matchingAnalyses: {
     labelKey: 'dashboard.metrics.matchingAnalyses',
     icon: Handshake,
     color: 'text-purple-600 bg-purple-50',
+    href: '/dashboard/matching',
   },
   transactions: {
     labelKey: 'dashboard.metrics.transactions',
     icon: FileSignature,
     color: 'text-orange-600 bg-orange-50',
+    href: '/dashboard/transactions',
   },
   policyAnalyses: {
     labelKey: 'dashboard.metrics.policyAnalyses',
     icon: FileText,
     color: 'text-blue-600 bg-blue-50',
+    href: '/dashboard/policy',
   },
 };
 
@@ -150,6 +157,7 @@ export default function DashboardPage() {
       labelKey: string;
       icon: typeof Wheat;
       color: string;
+      href: string;
       value: number;
     }>;
   }, [permissions.metricCards, metrics]);
@@ -200,19 +208,25 @@ export default function DashboardPage() {
           : metricCards.map((m) => {
               const Icon = m.icon;
               return (
-                <Card key={m.key}>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-xs font-medium text-surface-500 uppercase tracking-wide">
-                        {t(m.labelKey)}
-                      </p>
-                      <p className="text-2xl font-bold text-gray-900 mt-2">{m.value}</p>
+                <Link
+                  key={m.key}
+                  href={m.href}
+                  className="group block rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+                >
+                  <Card className="h-full transition-colors group-hover:border-primary-200 group-hover:bg-primary-50/30">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-xs font-medium text-surface-500 uppercase tracking-wide">
+                          {t(m.labelKey)}
+                        </p>
+                        <p className="text-2xl font-bold text-gray-900 mt-2">{m.value}</p>
+                      </div>
+                      <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${m.color}`}>
+                        <Icon className="h-5 w-5" />
+                      </div>
                     </div>
-                    <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${m.color}`}>
-                      <Icon className="h-5 w-5" />
-                    </div>
-                  </div>
-                </Card>
+                  </Card>
+                </Link>
               );
             })}
       </div>
@@ -251,18 +265,38 @@ export default function DashboardPage() {
             <p className="text-sm text-surface-400 py-4">{t('dashboard.noActivity')}</p>
           ) : (
             <div className="space-y-4">
-              {recentActivity.map((item, i) => (
-                <div key={i} className="flex items-start gap-3 pb-4 border-b border-surface-100 last:border-0 last:pb-0">
-                  <div className="h-2 w-2 rounded-full bg-primary-500 mt-2 flex-shrink-0" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{item.title}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs text-surface-400">{timeAgo(item.created_at, lang)}</span>
-                      <span className="text-xs bg-surface-100 text-surface-500 px-2 py-0.5 rounded-full">{item.type}</span>
+              {recentActivity.map((item, i) => {
+                const content = (
+                  <div className="flex items-start gap-3">
+                    <div className="h-2 w-2 rounded-full bg-primary-500 mt-2 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{item.title}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs text-surface-400">{timeAgo(item.created_at, lang)}</span>
+                        <span className="text-xs bg-surface-100 text-surface-500 px-2 py-0.5 rounded-full">{item.type}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+
+                if (item.href) {
+                  return (
+                    <Link
+                      key={`${item.href}-${i}`}
+                      href={item.href}
+                      className="block rounded-lg pb-4 border-b border-surface-100 last:border-0 last:pb-0 hover:bg-primary-50/50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors"
+                    >
+                      {content}
+                    </Link>
+                  );
+                }
+
+                return (
+                  <div key={i} className="pb-4 border-b border-surface-100 last:border-0 last:pb-0">
+                    {content}
+                  </div>
+                );
+              })}
             </div>
           )}
         </Card>

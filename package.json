@@ -12,7 +12,8 @@
     "simulate": "node --env-file=.env.local scripts/simulate.mjs",
     "simulate:cleanup": "node --env-file=.env.local scripts/simulate.mjs --cleanup",
     "seed:users": "node --env-file=.env.local scripts/seed-users.mjs",
-    "seed:transactions": "node --env-file=.env.local scripts/seed-demo-transactions.mjs"
+    "seed:transactions": "node --env-file=.env.local scripts/seed-demo-transactions.mjs",
+    "seed:demo-history": "node --env-file=.env.local scripts/seed-demo-history.mjs"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

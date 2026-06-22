@@ -52,6 +52,8 @@ const EMPTY_NEGOTIATION_FORM: NegotiationFormState = {
 export default function TransactionsPage() {
   const { t, lang } = useLanguage();
   const { user } = useAuth();
+  const requestedTransactionId =
+    typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('tx');
   const isMounted = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -119,7 +121,11 @@ export default function TransactionsPage() {
         const nextTransactions = data.data as Transaction[];
         setTransactions(nextTransactions);
         setSelectedTx((current) => {
-          if (!current) return null;
+          if (!current) {
+            return requestedTransactionId
+              ? nextTransactions.find((tx) => tx.id === requestedTransactionId) ?? null
+              : null;
+          }
           return nextTransactions.find((tx) => tx.id === current.id) ?? null;
         });
       }
@@ -133,6 +139,9 @@ export default function TransactionsPage() {
   };
 
   useEffect(() => {
+    isMounted.current = true;
+    abortControllerRef.current?.abort();
+
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
     fetchTransactions(abortController.signal);
@@ -142,7 +151,7 @@ export default function TransactionsPage() {
       abortController.abort();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [requestedTransactionId]);
 
   const syncTransactionState = async (nextTransaction: Transaction) => {
     setSelectedTx(nextTransaction);

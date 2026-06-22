@@ -19,6 +19,7 @@ export interface RecentActivityItem {
   type: string;
   title: string;
   created_at: string;
+  href?: string;
 }
 
 export interface DashboardData {
@@ -73,22 +74,28 @@ async function fetchCount(
   return count ?? 0;
 }
 
-/**
- * Fetches transaction count where user is buyer OR farmer.
- */
-async function fetchTransactionCount(
-  supabase: ReturnType<typeof createClient>,
-  userId: string,
-  signal: AbortSignal
-): Promise<number> {
-  const { count, error } = await supabase
-    .from('transactions')
-    .select('*', { count: 'exact', head: true })
-    .or(`buyer_id.eq.${userId},farmer_id.eq.${userId}`)
-    .abortSignal(signal);
+interface DashboardTransactionActivity {
+  id: string;
+  commodity: string;
+  status: string;
+  created_at: string;
+}
 
-  if (error) throw error;
-  return count ?? 0;
+async function fetchUserTransactions(signal: AbortSignal): Promise<DashboardTransactionActivity[]> {
+  const res = await fetch('/api/transactions', { signal });
+  if (!res.ok) throw new Error('Failed to load transactions');
+
+  const data = await res.json();
+  return Array.isArray(data.data) ? data.data : [];
+}
+
+/**
+ * Fetches transaction count through the transactions API so participant-only
+ * roles get the same visibility as the transaction dashboard.
+ */
+async function fetchTransactionCount(signal: AbortSignal): Promise<number> {
+  const transactions = await fetchUserTransactions(signal);
+  return transactions.length;
 }
 
 /**
@@ -158,7 +165,7 @@ async function fetchMetrics(
           key: 'transactions',
           promise: isGovernment
             ? fetchCount(supabase, 'transactions', null, null, signal)
-            : fetchTransactionCount(supabase, userId, signal),
+            : fetchTransactionCount(signal),
         });
         break;
       case 'policyAnalyses':
@@ -218,6 +225,7 @@ async function fetchRecentActivity(
             type: 'Farmer',
             title: input ? `${input.province || ''} - ${input.currentCrops || ''}` : 'Farmer Analysis',
             created_at: row.created_at,
+            href: '/dashboard/farmer',
           };
         });
       })()
@@ -241,6 +249,7 @@ async function fetchRecentActivity(
             type: 'Buyer',
             title: input ? `${input.commodityType || ''}` : 'Buyer Sourcing',
             created_at: row.created_at,
+            href: '/dashboard/buyer',
           };
         });
       })()
@@ -264,6 +273,7 @@ async function fetchRecentActivity(
             type: 'Policy',
             title: input?.regions?.slice(0, 2).join(', ') || 'Policy Analysis',
             created_at: row.created_at,
+            href: '/dashboard/policy',
           };
         });
       })()
@@ -285,6 +295,7 @@ async function fetchRecentActivity(
           type: 'Chat',
           title: row.title || 'Chat',
           created_at: row.created_at,
+          href: '/dashboard/chat',
         }));
       })()
     );
@@ -307,6 +318,7 @@ async function fetchRecentActivity(
             type: 'Weather',
             title: input?.location || 'Weather Analysis',
             created_at: row.created_at,
+            href: '/dashboard/weather',
           };
         });
       })()
@@ -330,8 +342,24 @@ async function fetchRecentActivity(
             type: 'Matching',
             title: input?.commodity || 'Matching Analysis',
             created_at: row.created_at,
+            href: '/dashboard/matching',
           };
         });
+      })()
+    );
+  }
+
+  // Transaction activity uses the API so buyer, farmer, and participant roles share one access rule.
+  if (pages.includes('/dashboard/transactions')) {
+    activityFetchers.push(
+      (async (): Promise<RecentActivityItem[]> => {
+        const transactions = await fetchUserTransactions(signal);
+        return transactions.slice(0, 5).map((tx) => ({
+          type: 'Transaction',
+          title: `${tx.commodity} - ${tx.status}`,
+          created_at: tx.created_at,
+          href: `/dashboard/transactions?tx=${encodeURIComponent(tx.id)}`,
+        }));
       })()
     );
   }
