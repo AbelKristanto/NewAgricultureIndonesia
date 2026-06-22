@@ -3,7 +3,19 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { LucideIcon } from 'lucide-react';
-import { Wheat, ShoppingCart, Package, Truck, Landmark, Building2 } from 'lucide-react';
+import {
+  BarChart3,
+  CloudSun,
+  FileSignature,
+  Handshake,
+  Landmark,
+  MessageSquare,
+  Package,
+  ShoppingCart,
+  Truck,
+  Wheat,
+  Building2,
+} from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { USER_ROLES } from '@/lib/constants';
@@ -20,6 +32,88 @@ const ROLE_ICONS: Record<UserRole, LucideIcon> = {
   finance: Landmark,
   government: Building2,
 };
+
+const CAPABILITIES: Array<{
+  icon: LucideIcon;
+  role: UserRole;
+  titleEn: string;
+  titleId: string;
+  descriptionEn: string;
+  descriptionId: string;
+}> = [
+  {
+    icon: Wheat,
+    role: 'farmer',
+    titleEn: 'Crop Recommendation',
+    titleId: 'Rekomendasi Tanaman',
+    descriptionEn: 'Use land, soil, water, budget, and timeline data to generate crop plans.',
+    descriptionId: 'Pakai data lahan, tanah, air, budget, dan timeline untuk rencana tanam.',
+  },
+  {
+    icon: ShoppingCart,
+    role: 'buyer',
+    titleEn: 'Demand Forecasting',
+    titleId: 'Prakiraan Permintaan',
+    descriptionEn: 'Model sourcing needs, volume, delivery schedule, and supplier risk.',
+    descriptionId: 'Modelkan kebutuhan sourcing, volume, jadwal kirim, dan risiko supplier.',
+  },
+  {
+    icon: Handshake,
+    role: 'supplier',
+    titleEn: 'Supply Matching',
+    titleId: 'Pencocokan Pasokan',
+    descriptionEn: 'Match commodity demand with regions, capacity, logistics, and price fit.',
+    descriptionId: 'Cocokkan permintaan komoditas dengan wilayah, kapasitas, logistik, dan harga.',
+  },
+  {
+    icon: CloudSun,
+    role: 'farmer',
+    titleEn: 'Weather Risk Analysis',
+    titleId: 'Analisis Risiko Cuaca',
+    descriptionEn: 'Estimate crop and delivery risks from weather scenarios.',
+    descriptionId: 'Perkirakan risiko tanaman dan pengiriman dari skenario cuaca.',
+  },
+  {
+    icon: FileSignature,
+    role: 'buyer',
+    titleEn: 'Contract Farming',
+    titleId: 'Kontrak Pertanian',
+    descriptionEn: 'Create transaction drafts and test role-based negotiation flows.',
+    descriptionId: 'Buat draft transaksi dan uji alur negosiasi sesuai role.',
+  },
+  {
+    icon: BarChart3,
+    role: 'government',
+    titleEn: 'Policy Monitoring',
+    titleId: 'Monitoring Kebijakan',
+    descriptionEn: 'Review supply-demand gaps, risk zones, and priority policy actions.',
+    descriptionId: 'Pantau gap pasokan-permintaan, zona risiko, dan aksi kebijakan prioritas.',
+  },
+  {
+    icon: Landmark,
+    role: 'finance',
+    titleEn: 'Financing Assessment',
+    titleId: 'Assessment Pembiayaan',
+    descriptionEn: 'Inspect policy and transaction signals for agriculture financing decisions.',
+    descriptionId: 'Lihat sinyal kebijakan dan transaksi untuk keputusan pembiayaan pertanian.',
+  },
+  {
+    icon: Truck,
+    role: 'logistics',
+    titleEn: 'Logistics Planning',
+    titleId: 'Perencanaan Logistik',
+    descriptionEn: 'Check route feasibility, timelines, and weather buffers.',
+    descriptionId: 'Cek kelayakan rute, timeline, dan buffer cuaca.',
+  },
+  {
+    icon: MessageSquare,
+    role: 'farmer',
+    titleEn: 'AI Advisory Chat',
+    titleId: 'Chat Konsultasi AI',
+    descriptionEn: 'Ask agriculture, market, weather, logistics, and policy questions.',
+    descriptionId: 'Tanyakan pertanian, pasar, cuaca, logistik, dan kebijakan.',
+  },
+];
 
 export default function LoginForm() {
   const [email, setEmail] = useState('');
@@ -90,7 +184,10 @@ export default function LoginForm() {
             />
 
             <div className="rounded-lg border border-primary-100 bg-primary-50 px-4 py-3 text-sm text-primary-900">
-              <p className="font-medium">{t('login.roleHint')}</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-primary-700">
+                {lang === 'en' ? 'Supported User Roles' : 'Role Pengguna yang Didukung'}
+              </p>
+              <p className="mt-1 font-medium">{t('login.roleHint')}</p>
               <div className="mt-3 grid grid-cols-2 gap-2">
                 {USER_ROLES.map((role) => {
                   const Icon = ROLE_ICONS[role.value];
@@ -114,6 +211,35 @@ export default function LoginForm() {
               </div>
             </div>
 
+            <div className="lg:hidden rounded-lg border border-surface-200 bg-white p-4">
+              <p className="text-sm font-semibold text-gray-900">
+                {lang === 'en' ? 'Platform Capabilities' : 'Kapabilitas Platform'}
+              </p>
+              <div className="mt-3 grid grid-cols-1 gap-2">
+                {CAPABILITIES.slice(0, 4).map((capability) => {
+                  const Icon = capability.icon;
+                  return (
+                    <button
+                      key={capability.titleEn}
+                      type="button"
+                      onClick={() => applyDemoRole(capability.role)}
+                      className="flex items-start gap-3 rounded-lg border border-surface-200 p-3 text-left hover:border-primary-300 hover:bg-primary-50"
+                    >
+                      <Icon className="mt-0.5 h-4 w-4 text-primary-700" />
+                      <span>
+                        <span className="block text-sm font-medium text-gray-900">
+                          {lang === 'en' ? capability.titleEn : capability.titleId}
+                        </span>
+                        <span className="mt-1 block text-xs text-surface-500">
+                          {lang === 'en' ? capability.descriptionEn : capability.descriptionId}
+                        </span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
                 {error}
@@ -128,31 +254,49 @@ export default function LoginForm() {
       </div>
 
       {/* Right side - Hero */}
-      <div className="hidden lg:flex flex-1 bg-gradient-to-br from-primary-700 via-primary-800 to-primary-950 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <svg className="w-full h-full" viewBox="0 0 400 400" fill="none">
-            <circle cx="200" cy="200" r="150" stroke="white" strokeWidth="0.5" />
-            <circle cx="200" cy="200" r="100" stroke="white" strokeWidth="0.5" />
-            <circle cx="200" cy="200" r="50" stroke="white" strokeWidth="0.5" />
-            <line x1="50" y1="200" x2="350" y2="200" stroke="white" strokeWidth="0.5" />
-            <line x1="200" y1="50" x2="200" y2="350" stroke="white" strokeWidth="0.5" />
-          </svg>
-        </div>
-        <div className="relative z-10 flex flex-col items-center justify-center p-16 text-center">
-          <h2 className="text-5xl font-bold tracking-tight text-white mb-4">{t('app.name')}</h2>
-          <p className="text-primary-200 text-lg max-w-sm">{t('app.tagline')}</p>
-          <div className="mt-12 grid grid-cols-2 gap-4 text-left">
-            {[
-              { en: 'Crop Recommendations', id: 'Rekomendasi Tanaman' },
-              { en: 'Demand Forecasting', id: 'Prakiraan Permintaan' },
-              { en: 'Supply Matching', id: 'Pencocokan Pasokan' },
-              { en: 'Weather Intelligence', id: 'Kecerdasan Cuaca' },
-            ].map((item, i) => (
-              <div key={i} className="flex items-center gap-2 text-primary-200 text-sm">
-                <div className="h-1.5 w-1.5 rounded-full bg-primary-400" />
-                {lang === 'en' ? item.en : item.id}
+      <div className="hidden lg:flex flex-1 bg-primary-950 relative overflow-hidden">
+        <div className="relative z-10 flex w-full flex-col justify-center overflow-y-auto p-12">
+          <h2 className="text-4xl font-bold tracking-tight text-white">{t('app.name')}</h2>
+          <p className="mt-3 text-primary-200 text-lg max-w-xl">{t('app.tagline')}</p>
+
+          <div className="mt-10">
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-primary-200">
+                  {lang === 'en' ? 'Platform Capabilities' : 'Kapabilitas Platform'}
+                </h3>
+                <p className="mt-1 text-sm text-primary-300">
+                  {lang === 'en'
+                    ? 'Click a capability to autofill a demo account that can use it.'
+                    : 'Klik capability untuk mengisi akun demo yang bisa memakai fitur itu.'}
+                </p>
               </div>
-            ))}
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              {CAPABILITIES.map((capability) => {
+                const Icon = capability.icon;
+                return (
+                  <button
+                    key={capability.titleEn}
+                    type="button"
+                    onClick={() => applyDemoRole(capability.role)}
+                    className="rounded-lg border border-white/10 bg-white/10 p-4 text-left text-white transition-colors hover:border-primary-300 hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-primary-300"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Icon className="h-4 w-4 text-primary-200" />
+                      <p className="text-sm font-semibold">{lang === 'en' ? capability.titleEn : capability.titleId}</p>
+                    </div>
+                    <p className="mt-2 text-xs leading-5 text-primary-200">
+                      {lang === 'en' ? capability.descriptionEn : capability.descriptionId}
+                    </p>
+                    <p className="mt-3 text-[11px] font-medium uppercase tracking-wide text-primary-300">
+                      {lang === 'en' ? 'Use as' : 'Pakai sebagai'} {t(`roles.${capability.role}`)}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>

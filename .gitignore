@@ -39,6 +39,18 @@ yarn-error.log*
 # simulation reports
 /reports
 
+# local test/browser artifacts
+/playwright-report
+/test-results
+/.cache
+/.turbo
+
+# local Supabase/runtime scratch data
+/supabase/.branches
+/supabase/.temp
+*.dump
+*.sql.local
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

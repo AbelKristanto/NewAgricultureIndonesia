@@ -99,6 +99,60 @@ const QUICK_ACTION_CONFIG: Record<
   '/dashboard/transactions': { labelKey: 'dashboard.actions.transactions', icon: FileSignature },
 };
 
+const DASHBOARD_CAPABILITY_CONFIG: Record<
+  string,
+  { labelKey: string; icon: typeof Wheat; descriptionEn: string; descriptionId: string }
+> = {
+  '/dashboard/farmer': {
+    labelKey: 'nav.farmer',
+    icon: Wheat,
+    descriptionEn: 'Analyze land conditions, crop fit, yield, costs, input needs, and buyer opportunities.',
+    descriptionId: 'Analisis kondisi lahan, kecocokan tanaman, hasil, biaya, kebutuhan input, dan peluang pembeli.',
+  },
+  '/dashboard/buyer': {
+    labelKey: 'nav.buyer',
+    icon: ShoppingCart,
+    descriptionEn: 'Plan sourcing demand, supplier regions, capacity, delivery timelines, and supply risks.',
+    descriptionId: 'Rencanakan kebutuhan sourcing, wilayah supplier, kapasitas, timeline kirim, dan risiko pasokan.',
+  },
+  '/dashboard/policy': {
+    labelKey: 'nav.policy',
+    icon: BarChart3,
+    descriptionEn: 'Review production, supply-demand gaps, risk zones, recommendations, and priority actions.',
+    descriptionId: 'Pantau produksi, gap supply-demand, zona risiko, rekomendasi, dan aksi prioritas.',
+  },
+  '/dashboard/matching': {
+    labelKey: 'nav.matching',
+    icon: Handshake,
+    descriptionEn: 'Match commodity needs with supply regions, logistics feasibility, timeline, and price fit.',
+    descriptionId: 'Cocokkan kebutuhan komoditas dengan wilayah pasokan, logistik, timeline, dan harga.',
+  },
+  '/dashboard/weather': {
+    labelKey: 'nav.weather',
+    icon: CloudSun,
+    descriptionEn: 'Estimate crop, delivery, irrigation, schedule, and mitigation risks from weather scenarios.',
+    descriptionId: 'Perkirakan risiko tanaman, pengiriman, irigasi, jadwal, dan mitigasi dari skenario cuaca.',
+  },
+  '/dashboard/transactions': {
+    labelKey: 'nav.transactions',
+    icon: FileSignature,
+    descriptionEn: 'Create, inspect, negotiate, and monitor role-based agricultural supply transactions.',
+    descriptionId: 'Buat, cek, negosiasikan, dan pantau transaksi pasokan pertanian sesuai role.',
+  },
+  '/dashboard/chat': {
+    labelKey: 'nav.chat',
+    icon: MessageSquare,
+    descriptionEn: 'Ask the AI assistant about agriculture, markets, weather, logistics, finance, and policy.',
+    descriptionId: 'Tanyakan ke AI tentang pertanian, pasar, cuaca, logistik, pembiayaan, dan kebijakan.',
+  },
+  '/dashboard/simulation': {
+    labelKey: 'nav.simulation',
+    icon: FileText,
+    descriptionEn: 'Inspect demo datasets and cross-feature simulation results for platform testing.',
+    descriptionId: 'Periksa dataset demo dan hasil simulasi lintas fitur untuk testing platform.',
+  },
+};
+
 /** Skeleton placeholder for a metric card */
 function MetricCardSkeleton() {
   return (
@@ -177,6 +231,23 @@ export default function DashboardPage() {
     }>;
   }, [permissions.quickActions]);
 
+  const capabilityCards = useMemo(() => {
+    return permissions.pages
+      .filter((path) => path !== '/dashboard')
+      .map((path) => {
+        const config = DASHBOARD_CAPABILITY_CONFIG[path];
+        if (!config) return null;
+        return { href: path, ...config };
+      })
+      .filter(Boolean) as Array<{
+      href: string;
+      labelKey: string;
+      icon: typeof Wheat;
+      descriptionEn: string;
+      descriptionId: string;
+    }>;
+  }, [permissions.pages]);
+
   return (
     <div className="space-y-6">
       {/* Welcome */}
@@ -186,6 +257,46 @@ export default function DashboardPage() {
         </h1>
         <p className="text-surface-500 mt-1">{t('dashboard.overview')}</p>
       </div>
+
+      {/* Platform Capabilities */}
+      {capabilityCards.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">
+                {lang === 'en' ? 'Platform Capabilities' : 'Kapabilitas Platform'}
+              </h2>
+              <p className="text-sm text-surface-500">
+                {lang === 'en'
+                  ? `Available for your current role: ${role ? t(`roles.${role}`) : 'User'}`
+                  : `Tersedia untuk role saat ini: ${role ? t(`roles.${role}`) : 'User'}`}
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+            {capabilityCards.map((capability) => {
+              const Icon = capability.icon;
+              return (
+                <Link
+                  key={capability.href}
+                  href={capability.href}
+                  className="group rounded-xl border border-surface-200 bg-white p-4 shadow-sm transition-colors hover:border-primary-200 hover:bg-primary-50/40 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-lg bg-primary-50 text-primary-700 flex items-center justify-center group-hover:bg-primary-100">
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <p className="text-sm font-semibold text-gray-900">{t(capability.labelKey)}</p>
+                  </div>
+                  <p className="mt-3 text-xs leading-5 text-surface-500">
+                    {lang === 'en' ? capability.descriptionEn : capability.descriptionId}
+                  </p>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Error state with retry */}
       {error && (
