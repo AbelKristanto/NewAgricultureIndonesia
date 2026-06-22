@@ -1,71 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   paginatedQuery,
   countQuery,
   normalizePagination,
-  type PaginatedQueryOptions,
 } from './query-helpers';
 
 // ─── Mock Supabase Client ────────────────────────────────────────────────────
-
-function createMockClient(overrides?: {
-  data?: unknown[];
-  count?: number;
-  error?: { message: string };
-  delay?: number;
-}) {
-  const { data = [], count = 0, error = null, delay = 0 } = overrides ?? {};
-
-  const mockQuery = {
-    select: vi.fn().mockReturnThis(),
-    range: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    order: vi.fn().mockImplementation(() => {
-      if (delay > 0) {
-        return new Promise((resolve) =>
-          setTimeout(() => resolve({ data, count, error }), delay)
-        );
-      }
-      return Promise.resolve({ data, count, error });
-    }),
-  };
-
-  // If no order is called, the range should resolve
-  mockQuery.range = vi.fn().mockImplementation(() => {
-    // Return an object that has .eq and .order methods
-    const chainable = {
-      eq: vi.fn().mockReturnThis() as ReturnType<typeof vi.fn>,
-      order: vi.fn().mockImplementation(() => {
-        if (delay > 0) {
-          return new Promise((resolve) =>
-            setTimeout(() => resolve({ data, count, error }), delay)
-          );
-        }
-        return Promise.resolve({ data, count, error });
-      }),
-      then: undefined as unknown,
-    };
-    // Make it thenable for cases without .order()
-    const promise = delay > 0
-      ? new Promise((resolve) => setTimeout(() => resolve({ data, count, error }), delay))
-      : Promise.resolve({ data, count, error });
-    chainable.then = (promise as unknown as { then: unknown }).then;
-    (chainable as unknown as Record<string | symbol, unknown>)[Symbol.toStringTag] = 'Promise';
-    // Return a proxy that acts as both chainable and promise
-    return new Proxy(chainable, {
-      get(target, prop) {
-        if (prop === 'then' || prop === 'catch' || prop === 'finally') {
-          return (promise as unknown as Record<string | symbol, unknown>)[prop as string];
-        }
-        return (target as Record<string, unknown>)[prop as string];
-      },
-    });
-  });
-
-  const mockFrom = vi.fn().mockReturnValue(mockQuery);
-
-  return { from: mockFrom } as unknown as Parameters<typeof paginatedQuery>[0];
-}
 
 // Better mock that properly chains
 function createChainMockClient(overrides?: {

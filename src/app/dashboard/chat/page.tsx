@@ -3,9 +3,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
+import Logo from '@/components/brand/Logo';
 import { createClient } from '@/lib/supabase/client';
 import { ChatMessage } from '@/types/chat';
-import { Send, Sprout, User, Plus, MessageSquare, PanelLeftClose, PanelLeft } from 'lucide-react';
+import { Send, User, Plus, MessageSquare, PanelLeftClose, PanelLeft } from 'lucide-react';
 import Spinner from '@/components/ui/Spinner';
 import ReactMarkdown from 'react-markdown';
 
@@ -274,9 +275,11 @@ export default function ChatPage() {
                 className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 {msg.role === 'assistant' && (
-                  <div className="h-8 w-8 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Sprout className="h-4 w-4 text-primary-700" />
-                  </div>
+                  <Logo
+                    variant="mark"
+                    className="h-9 w-9 flex-shrink-0"
+                    imageClassName="drop-shadow-sm"
+                  />
                 )}
                 <div
                   className={`max-w-[80%] rounded-2xl px-4 py-3 ${

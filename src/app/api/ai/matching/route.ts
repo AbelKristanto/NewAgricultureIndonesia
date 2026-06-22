@@ -8,7 +8,9 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import {
   getRequestContext,
   createUnauthorizedResponse,
+  createForbiddenResponse,
   createRateLimitResponse,
+  isRequestPermittedForApi,
 } from '@/lib/api-helpers';
 import {
   getEndpointCategory,
@@ -24,7 +26,9 @@ export async function POST(request: Request) {
     return createUnauthorizedResponse();
   }
 
-  // All authenticated roles permitted — no role check needed
+  if (!isRequestPermittedForApi(ctx, '/api/ai/matching')) {
+    return createForbiddenResponse();
+  }
 
   // Check rate limit
   const category = getEndpointCategory('/api/ai/matching');

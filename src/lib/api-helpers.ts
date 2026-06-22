@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server';
 import { UserRole } from '@/types/auth';
+import { isApiRoutePermitted, normalizeUserRole } from '@/lib/rbac';
 
 export interface RequestContext {
   userId: string;
   userRole: UserRole;
 }
-
-const VALID_ROLES: UserRole[] = ['farmer', 'buyer', 'supplier', 'logistics', 'finance', 'government'];
 
 /**
  * Extracts user ID and role from request headers set by middleware.
@@ -14,17 +13,13 @@ const VALID_ROLES: UserRole[] = ['farmer', 'buyer', 'supplier', 'logistics', 'fi
  */
 export function getRequestContext(request: Request): RequestContext | null {
   const userId = request.headers.get('x-user-id');
-  const userRole = request.headers.get('x-user-role');
+  const userRole = normalizeUserRole(request.headers.get('x-user-role'));
 
   if (!userId || !userRole) {
     return null;
   }
 
-  if (!VALID_ROLES.includes(userRole as UserRole)) {
-    return null;
-  }
-
-  return { userId, userRole: userRole as UserRole };
+  return { userId, userRole };
 }
 
 /**
@@ -60,4 +55,11 @@ export function createRateLimitResponse(retryAfter: number): NextResponse {
       },
     }
   );
+}
+
+/**
+ * Checks a request context against the same API route permissions used by middleware.
+ */
+export function isRequestPermittedForApi(ctx: RequestContext, pathname: string): boolean {
+  return isApiRoutePermitted(ctx.userRole, pathname);
 }

@@ -2,44 +2,56 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import type { LucideIcon } from 'lucide-react';
+import { Wheat, ShoppingCart, Package, Truck, Landmark, Building2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { UserRole } from '@/types/auth';
 import { USER_ROLES } from '@/lib/constants';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
-import Select from '@/components/ui/Select';
 import LanguageToggle from '@/components/shared/LanguageToggle';
-import { Sprout } from 'lucide-react';
+import { UserRole } from '@/types/auth';
+
+const ROLE_ICONS: Record<UserRole, LucideIcon> = {
+  farmer: Wheat,
+  buyer: ShoppingCart,
+  supplier: Package,
+  logistics: Truck,
+  finance: Landmark,
+  government: Building2,
+};
 
 export default function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<UserRole>('farmer');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const { login } = useAuth();
   const { t, lang } = useLanguage();
   const router = useRouter();
 
+  const applyDemoRole = (role: UserRole) => {
+    setSelectedRole(role);
+    setEmail(`${role}@serenagri.com`);
+    setPassword(`${role}123`);
+    setError('');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    
     setIsSubmitting(true);
 
-    const result = await login(email, password, role);
+    const result = await login(email, password);
     if (result.success) {
-      router.push('/dashboard');
+      router.push(result.redirectTo || '/dashboard');
     } else {
       setError(result.message || t('login.error'));
     }
     setIsSubmitting(false);
   };
-
-  const roleOptions = USER_ROLES.map((r) => ({
-    value: r.value,
-    label: lang === 'en' ? r.labelEn : r.labelId,
-  }));
 
   return (
     <div className="min-h-screen flex">
@@ -50,14 +62,9 @@ export default function LoginForm() {
         </div>
 
         <div className="w-full max-w-md mx-auto">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="h-12 w-12 bg-primary-700 rounded-xl flex items-center justify-center">
-              <Sprout className="h-7 w-7 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">{t('app.name')}</h1>
-              <p className="text-sm text-surface-500">{t('login.subtitle')}</p>
-            </div>
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900">{t('app.name')}</h1>
+            <p className="mt-3 text-sm text-surface-500">{t('login.subtitle')}</p>
           </div>
 
           <h2 className="text-xl font-semibold text-gray-900 mb-6">{t('login.title')}</h2>
@@ -81,13 +88,31 @@ export default function LoginForm() {
               onChange={(e) => setPassword(e.target.value)}
               required
             />
-            <Select
-              id="role"
-              label={t('login.role')}
-              options={roleOptions}
-              value={role}
-              onChange={(e) => setRole(e.target.value as UserRole)}
-            />
+
+            <div className="rounded-lg border border-primary-100 bg-primary-50 px-4 py-3 text-sm text-primary-900">
+              <p className="font-medium">{t('login.roleHint')}</p>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                {USER_ROLES.map((role) => {
+                  const Icon = ROLE_ICONS[role.value];
+
+                  return (
+                    <button
+                      key={role.value}
+                      type="button"
+                      onClick={() => applyDemoRole(role.value)}
+                      className={`flex items-center gap-2 rounded-2xl border px-3 py-2 text-left text-xs font-medium transition-all ${
+                        selectedRole === role.value
+                          ? 'border-primary-700 bg-primary-700 text-white shadow-sm'
+                          : 'border-primary-100 bg-white text-primary-700 hover:border-primary-300 hover:bg-primary-100'
+                      }`}
+                    >
+                      <Icon className="h-3.5 w-3.5 shrink-0" />
+                      {lang === 'en' ? role.labelEn : role.labelId}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
@@ -99,10 +124,6 @@ export default function LoginForm() {
               {isSubmitting ? t('common.loading') : t('login.submit')}
             </Button>
           </form>
-
-          <p className="mt-6 text-xs text-surface-400 text-center">
-            {t('login.demoHint')}
-          </p>
         </div>
       </div>
 
@@ -118,8 +139,7 @@ export default function LoginForm() {
           </svg>
         </div>
         <div className="relative z-10 flex flex-col items-center justify-center p-16 text-center">
-          <Sprout className="h-20 w-20 text-primary-300 mb-8" />
-          <h2 className="text-3xl font-bold text-white mb-4">{t('app.name')}</h2>
+          <h2 className="text-5xl font-bold tracking-tight text-white mb-4">{t('app.name')}</h2>
           <p className="text-primary-200 text-lg max-w-sm">{t('app.tagline')}</p>
           <div className="mt-12 grid grid-cols-2 gap-4 text-left">
             {[

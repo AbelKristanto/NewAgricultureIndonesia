@@ -3,61 +3,84 @@ import { UserRole } from '@/types/auth';
 export type { UserRole };
 
 export interface RolePermissions {
+  homePage: string;
   pages: string[];
   apiRoutes: string[];
   metricCards: string[];
   quickActions: string[];
 }
 
+export const VALID_USER_ROLES: UserRole[] = [
+  'farmer',
+  'buyer',
+  'supplier',
+  'logistics',
+  'finance',
+  'government',
+];
+
 export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
   farmer: {
+    homePage: '/dashboard/farmer',
     pages: ['/dashboard', '/dashboard/farmer', '/dashboard/chat', '/dashboard/weather', '/dashboard/matching'],
     apiRoutes: ['/api/ai/farmer', '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions'],
     metricCards: ['farmerAnalyses', 'chatConversations', 'weatherAnalyses'],
-    quickActions: ['/dashboard/farmer', '/dashboard/weather', '/dashboard/chat', '/dashboard/transactions'],
+    quickActions: ['/dashboard/farmer', '/dashboard/weather', '/dashboard/chat', '/dashboard/matching'],
   },
   buyer: {
+    homePage: '/dashboard/buyer',
     pages: ['/dashboard', '/dashboard/buyer', '/dashboard/chat', '/dashboard/matching', '/dashboard/transactions', '/dashboard/weather'],
     apiRoutes: ['/api/ai/buyer', '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions'],
     metricCards: ['buyerAnalyses', 'transactions', 'matchingAnalyses', 'chatConversations'],
     quickActions: ['/dashboard/buyer', '/dashboard/matching', '/dashboard/chat', '/dashboard/transactions'],
   },
   government: {
+    homePage: '/dashboard/policy',
     pages: ['/dashboard', '/dashboard/farmer', '/dashboard/buyer', '/dashboard/policy', '/dashboard/chat', '/dashboard/matching', '/dashboard/weather', '/dashboard/transactions', '/dashboard/simulation'],
     apiRoutes: ['/api/ai/farmer', '/api/ai/buyer', '/api/ai/policy', '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions', '/api/admin/simulation'],
     metricCards: ['policyAnalyses', 'farmerAnalyses', 'buyerAnalyses', 'transactions'],
     quickActions: ['/dashboard/policy', '/dashboard/farmer', '/dashboard/buyer', '/dashboard/chat'],
   },
   supplier: {
+    homePage: '/dashboard/matching',
     pages: ['/dashboard', '/dashboard/matching', '/dashboard/transactions', '/dashboard/chat', '/dashboard/weather'],
     apiRoutes: ['/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions'],
-    metricCards: ['chatConversations', 'farmerAnalyses'],
-    quickActions: ['/dashboard/farmer', '/dashboard/chat', '/dashboard/transactions'],
+    metricCards: ['matchingAnalyses', 'transactions', 'chatConversations'],
+    quickActions: ['/dashboard/matching', '/dashboard/transactions', '/dashboard/chat', '/dashboard/weather'],
   },
   logistics: {
+    homePage: '/dashboard/transactions',
     pages: ['/dashboard', '/dashboard/matching', '/dashboard/transactions', '/dashboard/chat', '/dashboard/weather'],
     apiRoutes: ['/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions'],
-    metricCards: ['chatConversations', 'farmerAnalyses'],
-    quickActions: ['/dashboard/chat', '/dashboard/transactions'],
+    metricCards: ['transactions', 'matchingAnalyses', 'chatConversations'],
+    quickActions: ['/dashboard/transactions', '/dashboard/matching', '/dashboard/chat', '/dashboard/weather'],
   },
   finance: {
+    homePage: '/dashboard/policy',
     pages: ['/dashboard', '/dashboard/policy', '/dashboard/transactions', '/dashboard/chat', '/dashboard/weather'],
-    apiRoutes: ['/api/ai/policy', '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions'],
-    metricCards: ['chatConversations', 'farmerAnalyses'],
-    quickActions: ['/dashboard/buyer', '/dashboard/chat', '/dashboard/transactions'],
+    apiRoutes: ['/api/ai/policy', '/api/ai/chat', '/api/ai/weather', '/api/transactions'],
+    metricCards: ['policyAnalyses', 'transactions', 'chatConversations'],
+    quickActions: ['/dashboard/policy', '/dashboard/transactions', '/dashboard/chat', '/dashboard/weather'],
   },
 };
 
 export const DEFAULT_PERMISSIONS: RolePermissions = {
+  homePage: '/dashboard',
   pages: ['/dashboard'],
-  apiRoutes: ['/api/ai/chat', '/api/ai/weather'],
-  metricCards: ['chatConversations'],
-  quickActions: ['/dashboard/chat', '/dashboard/weather'],
+  apiRoutes: [],
+  metricCards: [],
+  quickActions: [],
 };
 
+export function normalizeUserRole(role: unknown): UserRole | null {
+  if (typeof role !== 'string') return null;
+  return VALID_USER_ROLES.includes(role as UserRole) ? (role as UserRole) : null;
+}
+
 export function getPermissions(role: UserRole | null | undefined): RolePermissions {
-  if (!role || !(role in ROLE_PERMISSIONS)) return DEFAULT_PERMISSIONS;
-  return ROLE_PERMISSIONS[role];
+  const normalizedRole = normalizeUserRole(role);
+  if (!normalizedRole) return DEFAULT_PERMISSIONS;
+  return ROLE_PERMISSIONS[normalizedRole];
 }
 
 export function isPagePermitted(role: UserRole | null | undefined, pathname: string): boolean {
@@ -73,4 +96,8 @@ export function isPagePermitted(role: UserRole | null | undefined, pathname: str
 export function isApiRoutePermitted(role: UserRole | null | undefined, pathname: string): boolean {
   const perms = getPermissions(role);
   return perms.apiRoutes.some(prefix => pathname.startsWith(prefix));
+}
+
+export function getDefaultDashboardPage(role: UserRole | null | undefined): string {
+  return getPermissions(role).homePage;
 }

@@ -128,16 +128,16 @@ describe('useDashboardData - role-based metric selection', () => {
     expect(perms.metricCards).toEqual(['policyAnalyses', 'farmerAnalyses', 'buyerAnalyses', 'transactions']);
   });
 
-  it('supplier role fetches chatConversations, farmerAnalyses', async () => {
+  it('supplier role fetches matchingAnalyses, transactions, chatConversations', async () => {
     const { getPermissions } = await import('@/lib/rbac');
     const perms = getPermissions('supplier');
-    expect(perms.metricCards).toEqual(['chatConversations', 'farmerAnalyses']);
+    expect(perms.metricCards).toEqual(['matchingAnalyses', 'transactions', 'chatConversations']);
   });
 
-  it('unknown role falls back to chatConversations only', async () => {
+  it('unknown role falls back to no metric cards', async () => {
     const { getPermissions } = await import('@/lib/rbac');
     const perms = getPermissions(null);
-    expect(perms.metricCards).toEqual(['chatConversations']);
+    expect(perms.metricCards).toEqual([]);
   });
 });
 
@@ -165,8 +165,7 @@ describe('useDashboardData - query optimization', () => {
   });
 
   it('uses head:true with count:exact for count queries (no row payloads)', async () => {
-    // Dynamically import to get the module with mocks applied
-    const { useDashboardData } = await import('./useDashboardData');
+    await import('./useDashboardData');
 
     // The hook internally calls select('*', { count: 'exact', head: true })
     // We verify this by checking the mockSelect calls

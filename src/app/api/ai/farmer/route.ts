@@ -10,6 +10,7 @@ import {
   createUnauthorizedResponse,
   createForbiddenResponse,
   createRateLimitResponse,
+  isRequestPermittedForApi,
 } from '@/lib/api-helpers';
 import {
   getEndpointCategory,
@@ -25,8 +26,7 @@ export async function POST(request: Request) {
     return createUnauthorizedResponse();
   }
 
-  // Verify role is "farmer"
-  if (ctx.userRole !== 'farmer') {
+  if (!isRequestPermittedForApi(ctx, '/api/ai/farmer')) {
     return createForbiddenResponse();
   }
 

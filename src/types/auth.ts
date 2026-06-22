@@ -10,11 +10,11 @@ export interface User {
 export interface LoginRequest {
   email: string;
   password: string;
-  role: UserRole;
 }
 
 export interface LoginResponse {
   success: boolean;
   user?: User;
+  redirectTo?: string;
   message?: string;
 }

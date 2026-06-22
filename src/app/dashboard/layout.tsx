@@ -7,6 +7,8 @@ import { RoleGuard } from '@/components/auth/RoleGuard';
 import { ErrorBoundary } from '@/components/error/ErrorBoundary';
 import { ConnectionBanner } from '@/components/error/ConnectionBanner';
 
+export const dynamic = 'force-dynamic';
+
 export default async function DashboardLayout({
   children,
 }: {

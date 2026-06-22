@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { isPagePermitted } from '@/lib/rbac';
+import { getDefaultDashboardPage, isPagePermitted } from '@/lib/rbac';
 
 interface RoleGuardProps {
   children: React.ReactNode;
@@ -21,9 +21,9 @@ export function RoleGuard({ children }: RoleGuardProps) {
     if (isLoading) return;
     if (!user) return;
     if (!permitted) {
-      router.replace('/dashboard');
+      router.replace(getDefaultDashboardPage(role));
     }
-  }, [isLoading, user, permitted, router]);
+  }, [isLoading, user, permitted, router, role]);
 
   // Still loading auth state — render nothing to avoid flash
   if (isLoading) return null;

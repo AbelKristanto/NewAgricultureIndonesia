@@ -1,23 +1,22 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { RoleProvider } from '@/contexts/RoleContext';
 import './globals.css';
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-});
-
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
-});
-
 export const metadata: Metadata = {
   title: 'Serenagri AI - Agricultural Intelligence Platform',
   description: 'AI-powered agricultural intelligence platform for Indonesia. Optimize food production, supply-demand matching, and agricultural supply chain efficiency.',
+  manifest: '/manifest.webmanifest',
+  icons: {
+    icon: [
+      { url: '/logo-mark.png', sizes: '32x32', type: 'image/png' },
+      { url: '/logo-mark.png', sizes: '16x16', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/logo-mark.png', sizes: '180x180', type: 'image/png' },
+    ],
+  },
 };
 
 export default function RootLayout({
@@ -27,7 +26,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className="antialiased">
         <LanguageProvider>
           <AuthProvider>
             <RoleProvider>

@@ -1,47 +1,21 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from 'react';
+import { createContext, useContext, ReactNode } from 'react';
 import { UserRole } from '@/types/auth';
 import { useAuth } from './AuthContext';
-import { createClient } from '@/lib/supabase/client';
 
 interface RoleContextType {
-  role: UserRole;
-  setRole: (role: UserRole) => void;
+  role: UserRole | null;
 }
 
 const RoleContext = createContext<RoleContextType | undefined>(undefined);
 
-export function RoleProvider({ children, initialRole }: { children: ReactNode; initialRole?: UserRole }) {
+export function RoleProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const [role, setRoleState] = useState<UserRole>(initialRole || user?.role || 'farmer');
-  const supabaseRef = useRef(createClient());
-
-  // Sync role state when user changes (e.g., after login or page refresh)
-  useEffect(() => {
-    if (user?.role) {
-      setRoleState(user.role);
-    }
-  }, [user?.role]);
-
-  const setRole = useCallback((newRole: UserRole) => {
-    setRoleState(newRole);
-    if (user) {
-      // Fire-and-forget: update role in DB, ignore errors (table might be unreachable)
-      supabaseRef.current
-        .from('profiles')
-        .update({ role: newRole })
-        .eq('id', user.id)
-        .then(({ error }) => {
-          if (error) {
-            console.warn('[RoleContext] Could not update role in DB:', error.message);
-          }
-        });
-    }
-  }, [user]);
+  const role = user?.role ?? null;
 
   return (
-    <RoleContext.Provider value={{ role, setRole }}>
+    <RoleContext.Provider value={{ role }}>
       {children}
     </RoleContext.Provider>
   );

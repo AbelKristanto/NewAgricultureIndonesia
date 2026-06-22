@@ -363,7 +363,7 @@ export function useDashboardData(
     metrics: EMPTY_METRICS,
     recentActivity: [],
   });
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => Boolean(userId));
   const [error, setError] = useState<string | null>(null);
 
   // Track previous userId/role to skip re-fetch on unchanged re-renders
@@ -388,6 +388,7 @@ export function useDashboardData(
       abortControllerRef.current = abortController;
 
       if (!isBackground) {
+        setIsLoading(true);
         setError(null);
       }
 
@@ -441,10 +442,7 @@ export function useDashboardData(
 
     prevParamsRef.current = { userId, role };
 
-    if (!userId) {
-      setIsLoading(false);
-      return;
-    }
+    if (!userId) return;
 
     // Check cache first — stale-while-revalidate pattern
     const cacheKey = getCacheKey(userId, role || 'unknown');
@@ -452,16 +450,22 @@ export function useDashboardData(
 
     if (cached) {
       // Serve cached data immediately
-      setData(cached);
-      setIsLoading(false);
-      setError(null);
+      queueMicrotask(() => {
+        if (!isMountedRef.current) return;
+        setData(cached);
+        setIsLoading(false);
+        setError(null);
+      });
 
       // Trigger background refresh (won't show error if it fails)
-      fetchData(true);
+      queueMicrotask(() => {
+        void fetchData(true);
+      });
     } else {
       // No cache — fetch fresh data
-      setIsLoading(true);
-      fetchData(false);
+      queueMicrotask(() => {
+        void fetchData(false);
+      });
     }
 
     return () => {
@@ -481,7 +485,7 @@ export function useDashboardData(
   return {
     metrics: data.metrics,
     recentActivity: data.recentActivity,
-    isLoading,
+    isLoading: userId ? isLoading : false,
     error,
     retry,
   };

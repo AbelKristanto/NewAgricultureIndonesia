@@ -2,6 +2,7 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import Logo from '@/components/brand/Logo';
 import LanguageToggle from '@/components/shared/LanguageToggle';
 import { LogOut, User } from 'lucide-react';
 
@@ -13,7 +14,9 @@ export default function Topbar() {
     <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-sm border-b border-surface-200">
       <div className="flex items-center justify-between px-4 md:px-6 h-14">
         {/* Mobile logo */}
-        <div className="md:hidden font-bold text-primary-700 text-lg">Serenagri AI</div>
+        <div className="md:hidden">
+          <Logo className="h-8 w-[130px]" priority />
+        </div>
 
         <div className="hidden md:block" />
 

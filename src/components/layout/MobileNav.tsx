@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useRole } from '@/contexts/RoleContext';
 import { getPermissions } from '@/lib/rbac';
+import Logo from '@/components/brand/Logo';
 import { Home, Wheat, ShoppingCart, Building2, MessageSquare, Handshake, CloudSun, FileSignature, FlaskConical, Menu, X } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -56,7 +57,7 @@ export default function MobileNav() {
           <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setOpen(false)} />
           <div className="fixed inset-y-0 left-0 w-64 bg-white z-50 shadow-xl">
             <div className="flex items-center justify-between p-4 border-b border-surface-200">
-              <span className="font-bold text-primary-700 text-lg">Serenagri AI</span>
+              <Logo className="h-10 w-[170px]" priority />
               <button onClick={() => setOpen(false)} className="text-gray-500">
                 <X className="h-5 w-5" />
               </button>

@@ -3,7 +3,13 @@ import { createClient } from '@/lib/supabase/server';
 import { createTransaction, getUserTransactions } from '@/lib/db/transactions';
 import { CreateTransactionInput } from '@/types/transaction';
 import {
+  appendNegotiationEntry,
+  calculateTransactionTotalValue,
+  createNegotiationEntry,
+} from '@/lib/transaction-negotiation';
+import {
   getRequestContext,
+  createForbiddenResponse,
   createUnauthorizedResponse,
 } from '@/lib/api-helpers';
 
@@ -14,7 +20,9 @@ export async function GET(request: Request) {
     return createUnauthorizedResponse();
   }
 
-  // All authenticated roles permitted — no role check needed
+  if (ctx.userRole !== 'buyer') {
+    return createForbiddenResponse('Only buyers can create transactions');
+  }
 
   try {
     const supabase = await createClient();
@@ -47,12 +55,25 @@ export async function POST(request: Request) {
       volume: body.volume,
       volume_unit: body.volumeUnit,
       price_per_unit: body.pricePerUnit,
+      total_value: calculateTransactionTotalValue(body.volume, body.pricePerUnit),
       delivery_province: body.deliveryProvince,
       delivery_city: body.deliveryCity,
       start_date: body.startDate,
       end_date: body.endDate,
       farmer_id: body.farmerId,
-      terms: body.terms,
+      terms: appendNegotiationEntry(
+        body.terms ?? null,
+        createNegotiationEntry({
+          actorId: ctx.userId,
+          actorParty: 'buyer',
+          action: 'offer_created',
+          status: 'draft',
+          pricePerUnit: body.pricePerUnit ?? null,
+          startDate: body.startDate ?? null,
+          endDate: body.endDate ?? null,
+          note: body.note,
+        })
+      ),
     });
 
     return NextResponse.json({ success: true, data: transaction }, { status: 201 });

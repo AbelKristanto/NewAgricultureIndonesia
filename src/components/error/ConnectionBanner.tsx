@@ -16,6 +16,13 @@ export function ConnectionBanner() {
   const dismissTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
 
+  const clearRetryInterval = () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  };
+
   const checkConnection = async (): Promise<boolean> => {
     try {
       const supabase = createClient();
@@ -88,13 +95,6 @@ export function ConnectionBanner() {
       }
     };
   }, []);
-
-  const clearRetryInterval = () => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-  };
 
   const handleReload = () => {
     window.location.reload();

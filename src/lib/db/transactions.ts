@@ -1,4 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js';
+import { TransactionTerms } from '@/types/transaction';
 
 export async function createTransaction(
   supabase: SupabaseClient,
@@ -7,15 +8,15 @@ export async function createTransaction(
     commodity: string;
     volume: number;
     volume_unit: string;
-    price_per_unit?: number;
-    total_value?: number;
+    price_per_unit?: number | null;
+    total_value?: number | null;
     delivery_province: string;
-    delivery_city?: string;
-    start_date?: string;
-    end_date?: string;
-    farmer_id?: string;
+    delivery_city?: string | null;
+    start_date?: string | null;
+    end_date?: string | null;
+    farmer_id?: string | null;
     status?: string;
-    terms?: Record<string, unknown>;
+    terms?: TransactionTerms | null;
   }
 ) {
   const { data, error } = await supabase

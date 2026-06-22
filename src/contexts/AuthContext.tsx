@@ -1,18 +1,44 @@
 'use client';
 
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { User, UserRole } from '@/types/auth';
+import { User } from '@/types/auth';
+import { buildAuthenticatedUser, ProfileSnapshot } from '@/lib/auth-user';
+import { getDefaultDashboardPage } from '@/lib/rbac';
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  login: (email: string, password: string, role: UserRole) => Promise<{ success: boolean; message?: string }>;
+  login: (email: string, password: string) => Promise<{ success: boolean; message?: string; redirectTo?: string }>;
   logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+async function getProfileSnapshot(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<ProfileSnapshot | null> {
+  try {
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('username, role')
+      .eq('id', userId)
+      .maybeSingle(); // Use maybeSingle to avoid error when no rows found
+
+    if (error) {
+      console.warn('[AuthContext] Profile query error:', error.message);
+      return null;
+    }
+
+    return profile;
+  } catch (err) {
+    console.warn('[AuthContext] Profile query exception:', err);
+    return null;
+  }
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -42,35 +68,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (abortController.signal.aborted || !isMountedRef.current) return;
 
         if (authUser) {
-          // Try to fetch profile, but don't fail if table is unreachable
-          let profileUsername: string | null = null;
-          let profileRole: UserRole | null = null;
-
-          try {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('username, role')
-              .eq('id', authUser.id)
-              .single();
-
-            if (profile) {
-              profileUsername = profile.username;
-              profileRole = profile.role as UserRole;
-            }
-          } catch {
-            // Profile query failed (table might not exist or schema cache stale)
-            console.warn('[AuthContext] Profile query failed during init, using defaults');
-          }
+          const profile = await getProfileSnapshot(supabase, authUser.id);
 
           // Check again after async operation
           if (abortController.signal.aborted || !isMountedRef.current) return;
 
-          setUser({
-            id: authUser.id,
-            email: authUser.email || '',
-            username: profileUsername || authUser.email?.split('@')[0] || '',
-            role: profileRole || 'farmer',
-          });
+          setUser(buildAuthenticatedUser(authUser, profile));
         }
       } catch {
         // No valid session or aborted request
@@ -98,33 +101,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (!isMountedRef.current) return;
 
           const authUser = session.user;
-          let profileUsername: string | null = null;
-          let profileRole: UserRole | null = null;
-
-          try {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('username, role')
-              .eq('id', authUser.id)
-              .single();
-
-            if (profile) {
-              profileUsername = profile.username;
-              profileRole = profile.role as UserRole;
-            }
-          } catch {
-            // Profile query failed during token refresh, use defaults
-            console.warn('[AuthContext] Profile query failed during token refresh');
-          }
+          const profile = await getProfileSnapshot(supabase, authUser.id);
 
           if (!isMountedRef.current) return;
 
-          setUser({
-            id: authUser.id,
-            email: authUser.email || '',
-            username: profileUsername || authUser.email?.split('@')[0] || '',
-            role: profileRole || 'farmer',
-          });
+          setUser(buildAuthenticatedUser(authUser, profile));
         }
       }
     );
@@ -146,93 +127,100 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const login = useCallback(async (email: string, password: string, role: UserRole) => {
+  const login = useCallback(async (email: string, password: string) => {
     const supabase = supabaseRef.current;
 
     try {
-      // Attempt login — retry once if we get a transient schema error
-      let signInError = null;
-      for (let attempt = 0; attempt < 2; attempt++) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (!error) {
-          signInError = null;
-          break;
-        }
-        signInError = error;
-        // If it's a transient "schema" error, wait briefly and retry
-        if (error.message?.includes('schema') && attempt === 0) {
-          await new Promise(r => setTimeout(r, 1000));
-          continue;
-        }
-        break;
-      }
+      console.log('[AuthContext] Starting login for:', email);
+      
+      // Attempt sign in
+      const { data: sessionData, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
 
+      console.log('[AuthContext] Sign in response:', {
+        hasSession: !!sessionData?.session,
+        hasUser: !!sessionData?.user,
+        error: signInError?.message
+      });
+
+      // If there's an error and no session was created, fail immediately
       if (signInError) {
-        return { success: false, message: signInError.message };
+        console.error('[AuthContext] Sign in error:', signInError);
+        
+        // Check if it's a schema error but we still got a session
+        if (signInError.message?.includes('schema') && sessionData?.session) {
+          console.warn('[AuthContext] Schema error but session exists, continuing...');
+        } else {
+          // Real error, no session
+          return { success: false, message: signInError.message };
+        }
+      }
+
+      // Check if we got a session
+      if (!sessionData?.session || !sessionData?.user) {
+        console.error('[AuthContext] No session created');
+        return { success: false, message: 'Login failed. No session created.' };
       }
 
       if (!isMountedRef.current) {
         return { success: false, message: 'Operation cancelled' };
       }
 
-      // Get the authenticated user
-      const { data: { user: authUser } } = await supabase.auth.getUser();
+      console.log('[AuthContext] Session created successfully for user:', sessionData.user.id);
+      
+      // Use the user from session data directly
+      const authUser = sessionData.user;
 
       if (!isMountedRef.current) {
         return { success: false, message: 'Operation cancelled' };
       }
 
-      if (authUser) {
-        // Try to update role in profile — ignore errors (table might not exist or RLS blocks)
+      console.log('[AuthContext] User authenticated:', authUser.id);
+      
+      // Try to get profile, but don't fail if it doesn't exist
+      let profile = await getProfileSnapshot(supabase, authUser.id);
+
+      // If no profile exists, create one using admin client
+      if (!profile) {
+        console.log('[AuthContext] No profile found, creating...');
         try {
-          await supabase
+          const { data: newProfile, error: createError } = await supabase
             .from('profiles')
-            .update({ role })
-            .eq('id', authUser.id);
-        } catch {
-          console.warn('[AuthContext] Could not update profile role, continuing with login');
-        }
-
-        if (!isMountedRef.current) {
-          return { success: false, message: 'Operation cancelled' };
-        }
-
-        // Try to fetch profile for username/role — use fallbacks if it fails
-        let profileUsername: string | null = null;
-        let profileRole: UserRole = role;
-
-        try {
-          const { data: profile } = await supabase
-            .from('profiles')
+            .insert({
+              id: authUser.id,
+              username: authUser.user_metadata?.username || authUser.email?.split('@')[0] || 'User',
+              role: authUser.user_metadata?.role || 'farmer'
+            })
             .select('username, role')
-            .eq('id', authUser.id)
             .single();
 
-          if (profile) {
-            profileUsername = profile.username;
-            profileRole = (profile.role as UserRole) || role;
+          if (!createError && newProfile) {
+            profile = newProfile;
+            console.log('[AuthContext] Profile created successfully');
           }
-        } catch {
-          console.warn('[AuthContext] Could not fetch profile, using defaults');
+        } catch (createErr) {
+          console.warn('[AuthContext] Could not create profile, using defaults');
         }
-
-        if (!isMountedRef.current) {
-          return { success: false, message: 'Operation cancelled' };
-        }
-
-        setUser({
-          id: authUser.id,
-          email: authUser.email || '',
-          username: profileUsername || authUser.email?.split('@')[0] || '',
-          role: profileRole,
-        });
       }
 
+      if (!isMountedRef.current) {
+        return { success: false, message: 'Operation cancelled' };
+      }
+
+      const nextUser = buildAuthenticatedUser(authUser, profile);
+      console.log('[AuthContext] User built:', { id: nextUser.id, role: nextUser.role });
+      setUser(nextUser);
+
       router.refresh();
-      return { success: true };
+      return {
+        success: true,
+        redirectTo: getDefaultDashboardPage(nextUser.role),
+      };
     } catch (err) {
-      console.error('[AuthContext] Login error:', err);
-      return { success: false, message: 'Network error' };
+      console.error('[AuthContext] Login exception:', err);
+      return { success: false, message: err instanceof Error ? err.message : 'Network error' };
     }
   }, [router]);
 
@@ -243,12 +231,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
-    }
-
-    // Unsubscribe from auth state listener before sign-out
-    if (subscriptionRef.current) {
-      subscriptionRef.current.unsubscribe();
-      subscriptionRef.current = null;
     }
 
     await supabase.auth.signOut();

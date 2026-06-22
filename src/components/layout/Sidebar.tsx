@@ -6,7 +6,8 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRole } from '@/contexts/RoleContext';
 import { getPermissions } from '@/lib/rbac';
-import { Home, Wheat, ShoppingCart, Building2, MessageSquare, Handshake, CloudSun, FileSignature, FlaskConical, ChevronLeft, ChevronRight, Sprout } from 'lucide-react';
+import Logo from '@/components/brand/Logo';
+import { Home, Wheat, ShoppingCart, Building2, MessageSquare, Handshake, CloudSun, FileSignature, FlaskConical, ChevronLeft, ChevronRight } from 'lucide-react';
 import clsx from 'clsx';
 import { useMemo, useState } from 'react';
 
@@ -44,8 +45,6 @@ export default function Sidebar() {
     [permittedPages]
   );
 
-  const roleLabelKey = `roles.${role}`;
-
   return (
     <aside
       className={clsx(
@@ -55,10 +54,12 @@ export default function Sidebar() {
     >
       {/* Logo */}
       <div className={clsx('flex items-center gap-3 p-4 border-b border-surface-200', collapsed && 'justify-center')}>
-        <div className="h-9 w-9 bg-primary-700 rounded-lg flex items-center justify-center flex-shrink-0">
-          <Sprout className="h-5 w-5 text-white" />
-        </div>
-        {!collapsed && <span className="font-bold text-gray-900 text-lg">Serenagri</span>}
+        <Logo
+          variant={collapsed ? 'mark' : 'full'}
+          className={collapsed ? 'h-9 w-9' : 'h-10 w-[160px]'}
+          imageClassName={collapsed ? 'drop-shadow-sm' : undefined}
+          priority
+        />
       </div>
 
       {/* Navigation */}
@@ -116,7 +117,7 @@ export default function Sidebar() {
       {!collapsed && user && (
         <div className="p-4 border-t border-surface-200">
           <div className="text-sm font-medium text-gray-900">{user.username}</div>
-          <div className="text-xs text-surface-500">{t(roleLabelKey)}</div>
+          {role && <div className="text-xs text-surface-500">{t(`roles.${role}`)}</div>}
         </div>
       )}
 

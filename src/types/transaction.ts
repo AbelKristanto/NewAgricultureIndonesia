@@ -6,6 +6,34 @@ export type TransactionStatus =
   | 'completed'
   | 'cancelled';
 
+export type TransactionParty = 'buyer' | 'farmer';
+
+export type NegotiationAction =
+  | 'offer_created'
+  | 'proposal_submitted'
+  | 'counter_offer'
+  | 'accepted'
+  | 'rejected'
+  | 'status_updated';
+
+export interface TransactionNegotiationEntry {
+  id: string;
+  actor_id: string;
+  actor_party: TransactionParty;
+  action: NegotiationAction;
+  status: TransactionStatus;
+  price_per_unit: number | null;
+  start_date: string | null;
+  end_date: string | null;
+  note: string | null;
+  created_at: string;
+}
+
+export interface TransactionTerms {
+  note?: string | null;
+  negotiationHistory?: TransactionNegotiationEntry[];
+}
+
 export interface Transaction {
   id: string;
   buyer_id: string;
@@ -20,7 +48,7 @@ export interface Transaction {
   start_date: string | null;
   end_date: string | null;
   status: TransactionStatus;
-  terms: Record<string, unknown> | null;
+  terms: TransactionTerms | null;
   created_at: string;
   updated_at: string;
 }
@@ -35,5 +63,6 @@ export interface CreateTransactionInput {
   startDate?: string;
   endDate?: string;
   farmerId?: string;
-  terms?: Record<string, unknown>;
+  note?: string;
+  terms?: TransactionTerms;
 }

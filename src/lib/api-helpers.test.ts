@@ -4,7 +4,7 @@ import {
   createForbiddenResponse,
   createUnauthorizedResponse,
   createRateLimitResponse,
-  RequestContext,
+  isRequestPermittedForApi,
 } from './api-helpers';
 
 describe('API Helpers', () => {
@@ -100,6 +100,18 @@ describe('API Helpers', () => {
       expect(response.status).toBe(403);
       const body = await response.json();
       expect(body).toEqual({ error: 'Custom forbidden message' });
+    });
+  });
+
+  describe('isRequestPermittedForApi()', () => {
+    it('should allow government to run farmer and buyer analyses according to RBAC', () => {
+      expect(isRequestPermittedForApi({ userId: 'gov-1', userRole: 'government' }, '/api/ai/farmer')).toBe(true);
+      expect(isRequestPermittedForApi({ userId: 'gov-1', userRole: 'government' }, '/api/ai/buyer')).toBe(true);
+    });
+
+    it('should block roles from APIs outside their permissions', () => {
+      expect(isRequestPermittedForApi({ userId: 'farmer-1', userRole: 'farmer' }, '/api/ai/buyer')).toBe(false);
+      expect(isRequestPermittedForApi({ userId: 'finance-1', userRole: 'finance' }, '/api/ai/matching')).toBe(false);
     });
   });
 
