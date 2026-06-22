@@ -14,8 +14,9 @@ import Spinner from '@/components/ui/Spinner';
 import ResultSection from '@/components/shared/ResultSection';
 import FormInfoButton from '@/components/shared/FormInfoButton';
 import ConnectionFlowBanner from '@/components/shared/ConnectionFlowBanner';
+import CapabilityOpportunityPanel, { CapabilityOpportunity } from '@/components/shared/CapabilityOpportunityPanel';
 import ReactMarkdown from 'react-markdown';
-import { MapPin, BarChart3, Truck, Clock, DollarSign, ThumbsUp, History, ChevronDown, ChevronUp, Wheat, ShoppingCart } from 'lucide-react';
+import { MapPin, BarChart3, Truck, Clock, DollarSign, ThumbsUp, History, ChevronDown, ChevronUp, Wheat, ShoppingCart, Sparkles } from 'lucide-react';
 
 interface MatchingResult {
   matchedRegions?: string;
@@ -32,6 +33,20 @@ interface HistoryItem {
   input: Record<string, unknown>;
   result: Record<string, unknown>;
   created_at: string;
+}
+
+interface MatchingOpportunity extends CapabilityOpportunity {
+  form: {
+    commodity: string;
+    volume: string;
+    volumeUnit: 'tons' | 'kg';
+    deliveryProvince: string;
+    deliveryCity: string;
+    qualityGrade: string;
+    timeline: string;
+    notes: string;
+  };
+  result: MatchingResult;
 }
 
 export default function MatchingPage() {
@@ -172,6 +187,110 @@ export default function MatchingPage() {
     label: lang === 'en' ? t.labelEn : t.labelId,
   }));
 
+  const matchingOpportunities: MatchingOpportunity[] = [
+    {
+      id: 'rice-subang-jakarta-2026',
+      title: user?.role === 'farmer'
+        ? (lang === 'en' ? 'Buyer demand: Jakarta rice' : 'Demand pembeli: beras Jakarta')
+        : (lang === 'en' ? 'Farmer supply: Subang rice' : 'Pasokan petani: beras Subang'),
+      subtitle: lang === 'en' ? '25 tons, Grade A, July window' : '25 ton, Grade A, window Juli',
+      leftLabel: lang === 'en' ? 'Petani Subang' : 'Petani Subang',
+      rightLabel: lang === 'en' ? 'Buyer Jakarta' : 'Buyer Jakarta',
+      metric: '88%',
+      status: lang === 'en' ? 'Ready to match' : 'Siap dicocokkan',
+      insight: lang === 'en'
+        ? 'Irrigated rice supply can meet Jakarta buyer demand with a short Pantura route.'
+        : 'Pasokan padi irigasi cocok dengan demand buyer Jakarta melalui rute Pantura yang pendek.',
+      actionLabel: lang === 'en' ? 'Use match' : 'Pakai kandidat',
+      form: {
+        commodity: 'rice',
+        volume: '25',
+        volumeUnit: 'tons',
+        deliveryProvince: 'dki-jakarta',
+        deliveryCity: 'Jakarta Utara',
+        qualityGrade: 'grade-a',
+        timeline: '1-season',
+        notes: 'Kandidat rice-subang-jakarta-2026: Petani Demo Subang cocok dengan Buyer Demo Jakarta. Lanjutkan ke transaksi dan cek pembiayaan modal kerja.',
+      },
+      result: {
+        matchedRegions: 'Petani Demo Subang menjadi kandidat utama untuk Buyer Demo Jakarta karena volume 25 ton dan kualitas Grade A sesuai kebutuhan.',
+        capacityEstimates: 'Kapasitas aman 25 ton per siklus dengan buffer 10% dari kelompok tani sekitar Subang.',
+        logisticsFeasibility: 'Rute Subang - Pantura - Jakarta Utara layak untuk pengiriman bertahap 2-4 hari.',
+        timeline: 'Matching hari ini, negosiasi 3-5 hari, pengiriman awal mulai 1 Juli 2026.',
+        priceAnalysis: 'Harga acuan IDR 11.800.000 per ton masih sesuai rentang kontrak buyer.',
+        recommendations: 'Buat transaksi buyer-farmer, lalu libatkan Finance untuk modal kerja petani dan Logistics untuk jadwal kirim.',
+      },
+    },
+    {
+      id: 'chili-garut-bandung-2026',
+      title: lang === 'en' ? 'Fresh chili demand: Bandung' : 'Demand cabai segar: Bandung',
+      subtitle: lang === 'en' ? '800 kg, fast delivery' : '800 kg, pengiriman cepat',
+      leftLabel: lang === 'en' ? 'Petani Garut' : 'Petani Garut',
+      rightLabel: lang === 'en' ? 'Buyer Bandung' : 'Buyer Bandung',
+      metric: '82%',
+      status: lang === 'en' ? 'Needs route buffer' : 'Perlu buffer rute',
+      insight: lang === 'en'
+        ? 'Garut supply fits Bandung demand, but logistics should buffer weather and freshness risk.'
+        : 'Pasokan Garut cocok untuk demand Bandung, tetapi logistics perlu buffer cuaca dan kesegaran.',
+      actionLabel: lang === 'en' ? 'Use match' : 'Pakai kandidat',
+      form: {
+        commodity: 'chili',
+        volume: '800',
+        volumeUnit: 'kg',
+        deliveryProvince: 'jawa-barat',
+        deliveryCity: 'Bandung',
+        qualityGrade: 'grade-a',
+        timeline: '1-season',
+        notes: 'Kandidat chili-garut-bandung-2026: butuh cold handling ringan dan buffer rute Garut - Nagreg - Bandung.',
+      },
+      result: {
+        matchedRegions: 'Petani Demo Garut cocok untuk Buyer Demo Bandung karena kedekatan wilayah dan ketersediaan cabai segar.',
+        capacityEstimates: 'Kapasitas 800 kg dapat dipenuhi dari panen bertahap, dengan buffer 100 kg dari petani sekitar.',
+        logisticsFeasibility: 'Rute Garut - Nagreg - Bandung layak, namun perlu pickup pagi dan kemasan berventilasi.',
+        timeline: 'Matching 1 hari, quality check 1 hari, pengiriman dalam 2-3 hari.',
+        priceAnalysis: 'Harga acuan IDR 78.000 per kg realistis untuk cabai segar Grade A.',
+        recommendations: 'Pilih kandidat ini untuk uji counter/accept di transaksi cabai dan validasi rute oleh Logistics.',
+      },
+    },
+    {
+      id: 'corn-malang-surabaya-2026',
+      title: lang === 'en' ? 'Feed corn supply: Malang' : 'Pasokan jagung pakan: Malang',
+      subtitle: lang === 'en' ? '12 tons, Surabaya buyer' : '12 ton, buyer Surabaya',
+      leftLabel: lang === 'en' ? 'Petani Malang' : 'Petani Malang',
+      rightLabel: lang === 'en' ? 'Buyer Surabaya' : 'Buyer Surabaya',
+      metric: '79%',
+      status: lang === 'en' ? 'Supplier input visible' : 'Input supplier terlihat',
+      insight: lang === 'en'
+        ? 'Corn supply is suitable for Surabaya feed demand and can expose input needs to suppliers.'
+        : 'Pasokan jagung cocok untuk demand pakan Surabaya dan kebutuhan inputnya bisa dilihat supplier.',
+      actionLabel: lang === 'en' ? 'Use match' : 'Pakai kandidat',
+      form: {
+        commodity: 'corn',
+        volume: '12',
+        volumeUnit: 'tons',
+        deliveryProvince: 'jawa-timur',
+        deliveryCity: 'Surabaya',
+        qualityGrade: 'standard',
+        timeline: '1-season',
+        notes: 'Kandidat corn-malang-surabaya-2026: Petani Malang, Buyer Surabaya, supplier input memantau kebutuhan benih/pupuk.',
+      },
+      result: {
+        matchedRegions: 'Petani Demo Malang menjadi kandidat pasokan jagung untuk Buyer Demo Surabaya.',
+        capacityEstimates: 'Kapasitas 12 ton realistis untuk satu siklus, dengan opsi agregasi desa sekitar.',
+        logisticsFeasibility: 'Rute Malang - Pandaan - Surabaya stabil untuk pengiriman bulk.',
+        timeline: 'Negosiasi dapat dimulai dari transaksi accepted demo dan dilanjutkan ke monitoring pengiriman.',
+        priceAnalysis: 'Harga IDR 5.400.000 per ton sesuai nilai transaksi dummy accepted.',
+        recommendations: 'Gunakan sebagai contoh koneksi supplier input, buyer-farmer transaction, dan monitoring government.',
+      },
+    },
+  ];
+
+  const selectOpportunity = (opportunity: MatchingOpportunity) => {
+    setForm(opportunity.form);
+    setResults(opportunity.result);
+    setError('');
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -188,6 +307,16 @@ export default function MatchingPage() {
         rightLabel={lang === 'en' ? 'Buyer demand' : 'Kebutuhan Pembeli'}
         leftIcon={Wheat}
         rightIcon={ShoppingCart}
+      />
+
+      <CapabilityOpportunityPanel
+        title={lang === 'en' ? 'Available matching opportunities' : 'Peluang matching yang tersedia'}
+        description={lang === 'en'
+          ? 'Pick a candidate to simulate how farmer supply and buyer demand become a match before moving into transactions.'
+          : 'Pilih kandidat untuk mensimulasikan bagaimana pasokan petani dan demand pembeli menjadi matching sebelum lanjut ke transaksi.'}
+        icon={Sparkles}
+        opportunities={matchingOpportunities}
+        onSelect={(opportunity) => selectOpportunity(opportunity as MatchingOpportunity)}
       />
 
       <div className="bg-white rounded-xl border border-surface-200">

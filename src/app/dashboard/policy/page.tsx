@@ -12,8 +12,9 @@ import Spinner from '@/components/ui/Spinner';
 import ResultSection from '@/components/shared/ResultSection';
 import FormInfoButton from '@/components/shared/FormInfoButton';
 import ConnectionFlowBanner from '@/components/shared/ConnectionFlowBanner';
+import CapabilityOpportunityPanel, { CapabilityOpportunity } from '@/components/shared/CapabilityOpportunityPanel';
 import ReactMarkdown from 'react-markdown';
-import { MapPin, TrendingUp, AlertTriangle, FileText, Target, History, ChevronDown, ChevronUp, Wheat, Landmark } from 'lucide-react';
+import { MapPin, TrendingUp, AlertTriangle, FileText, Target, History, ChevronDown, ChevronUp, Wheat, Landmark, BadgeCheck } from 'lucide-react';
 
 interface PolicyResult {
   productionOverview?: string;
@@ -29,6 +30,14 @@ interface HistoryItem {
   input: Record<string, unknown>;
   result: Record<string, unknown>;
   created_at: string;
+}
+
+interface FinanceOpportunity extends CapabilityOpportunity {
+  regions: string[];
+  commodities: string[];
+  analysisTypes: string[];
+  timeHorizon: string;
+  result: PolicyResult;
 }
 
 export default function PolicyPage() {
@@ -145,6 +154,66 @@ export default function PolicyPage() {
     setResults(item.result as unknown as PolicyResult);
   };
 
+  const financeOpportunities: FinanceOpportunity[] = [
+    {
+      id: 'finance-rice-subang-jakarta-2026',
+      title: lang === 'en' ? 'Working capital: Subang rice farmer' : 'Modal kerja: petani beras Subang',
+      subtitle: lang === 'en' ? 'Linked to Buyer Demo Jakarta PO' : 'Terkait PO Buyer Demo Jakarta',
+      leftLabel: lang === 'en' ? 'Petani Subang' : 'Petani Subang',
+      rightLabel: lang === 'en' ? 'Financial institution' : 'Lembaga keuangan',
+      metric: 'IDR 180M',
+      status: lang === 'en' ? 'Assessment ready' : 'Siap assessment',
+      insight: lang === 'en'
+        ? 'Buyer demand and transaction value can support short-term working capital assessment.'
+        : 'Demand buyer dan nilai transaksi bisa menjadi dasar assessment modal kerja jangka pendek.',
+      actionLabel: lang === 'en' ? 'Assess' : 'Assessment',
+      regions: ['jawa-barat'],
+      commodities: ['rice'],
+      analysisTypes: ['production-capacity', 'demand-supply'],
+      timeHorizon: '1-year',
+      result: {
+        productionOverview: 'Petani Demo Subang punya rencana pasokan beras 25 ton untuk Buyer Demo Jakarta dengan irigasi dan jadwal panen yang jelas.',
+        supplyDemandAnalysis: 'Demand buyer senilai acuan IDR 295.000.000 mendukung assessment modal kerja sekitar IDR 180.000.000.',
+        riskZones: 'Risiko utama berada pada cuaca basah, jadwal panen, dan keterlambatan rute Subang - Pantura - Jakarta Utara.',
+        policyRecommendations: 'Lembaga keuangan dapat memakai transaksi buyer-farmer sebagai dasar invoice/PO financing bertahap.',
+        priorityActions: '1. Validasi transaksi. 2. Cek histori produksi petani. 3. Tetapkan pencairan bertahap mengikuti milestone panen dan pengiriman.',
+      },
+    },
+    {
+      id: 'finance-chili-garut-bandung-2026',
+      title: lang === 'en' ? 'Harvest bridge: Garut chili farmer' : 'Talangan panen: petani cabai Garut',
+      subtitle: lang === 'en' ? 'Fresh delivery risk needs buffer' : 'Risiko kirim segar perlu buffer',
+      leftLabel: lang === 'en' ? 'Petani Garut' : 'Petani Garut',
+      rightLabel: lang === 'en' ? 'Financial institution' : 'Lembaga keuangan',
+      metric: 'IDR 52M',
+      status: lang === 'en' ? 'Medium risk' : 'Risiko sedang',
+      insight: lang === 'en'
+        ? 'Chili demand is strong, but freshness and weather risk should affect financing terms.'
+        : 'Demand cabai kuat, tetapi risiko kesegaran dan cuaca perlu memengaruhi tenor pembiayaan.',
+      actionLabel: lang === 'en' ? 'Assess' : 'Assessment',
+      regions: ['jawa-barat'],
+      commodities: ['chili'],
+      analysisTypes: ['production-capacity', 'food-supply-gaps', 'demand-supply'],
+      timeHorizon: 'current-season',
+      result: {
+        productionOverview: 'Petani Demo Garut punya peluang memasok 800 kg cabai ke Buyer Demo Bandung.',
+        supplyDemandAnalysis: 'Volume kecil dan nilai cepat cair cocok untuk pembiayaan jangka pendek berbasis pengiriman.',
+        riskZones: 'Risiko tinggi pada fluktuasi harga cabai, cuaca, dan keterlambatan rute Garut - Nagreg - Bandung.',
+        policyRecommendations: 'Gunakan plafon lebih kecil dengan pencairan setelah quality check dan bukti pickup logistics.',
+        priorityActions: '1. Cek kontrak buyer. 2. Wajibkan bukti pickup. 3. Tambahkan buffer harga dan klausa kualitas.',
+      },
+    },
+  ];
+
+  const selectFinanceOpportunity = (opportunity: FinanceOpportunity) => {
+    setSelectedRegions(opportunity.regions);
+    setSelectedCommodities(opportunity.commodities);
+    setSelectedAnalysis(opportunity.analysisTypes);
+    setTimeHorizon(opportunity.timeHorizon);
+    setResults(opportunity.result);
+    setError('');
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -172,6 +241,18 @@ export default function PolicyPage() {
           rightLabel={lang === 'en' ? 'Financial institution' : 'Lembaga Keuangan'}
           leftIcon={Wheat}
           rightIcon={Landmark}
+        />
+      )}
+
+      {isFinanceRole && (
+        <CapabilityOpportunityPanel
+          title={lang === 'en' ? 'Financing opportunities' : 'Peluang pembiayaan yang tersedia'}
+          description={lang === 'en'
+            ? 'Pick a farmer financing candidate to see how supply, demand, and risk signals become an assessment.'
+            : 'Pilih kandidat pembiayaan petani untuk melihat bagaimana sinyal pasokan, demand, dan risiko menjadi assessment.'}
+          icon={BadgeCheck}
+          opportunities={financeOpportunities}
+          onSelect={(opportunity) => selectFinanceOpportunity(opportunity as FinanceOpportunity)}
         />
       )}
 

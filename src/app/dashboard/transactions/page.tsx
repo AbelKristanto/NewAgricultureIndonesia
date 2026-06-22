@@ -26,6 +26,7 @@ import Badge from '@/components/ui/Badge';
 import Textarea from '@/components/ui/Textarea';
 import FormInfoButton from '@/components/shared/FormInfoButton';
 import ConnectionFlowBanner from '@/components/shared/ConnectionFlowBanner';
+import CapabilityOpportunityPanel, { CapabilityOpportunity } from '@/components/shared/CapabilityOpportunityPanel';
 import {
   ArrowRightLeft,
   Check,
@@ -44,6 +45,10 @@ interface NegotiationFormState {
   startDate: string;
   endDate: string;
   note: string;
+}
+
+interface LogisticsOpportunity extends CapabilityOpportunity {
+  scenarioId: string;
 }
 
 const EMPTY_NEGOTIATION_FORM: NegotiationFormState = {
@@ -385,6 +390,67 @@ export default function TransactionsPage() {
     ['proposed', 'accepted'].includes(selectedTx.status) &&
     canRespond;
 
+  const logisticsOpportunities: LogisticsOpportunity[] = [
+    {
+      id: 'logistics-rice-subang-jakarta-2026',
+      scenarioId: 'rice-subang-jakarta-2026',
+      title: lang === 'en' ? 'Rice route: Subang to Jakarta' : 'Rute beras: Subang ke Jakarta',
+      subtitle: lang === 'en' ? '25 tons, delivery window July 1-20' : '25 ton, window kirim 1-20 Juli',
+      leftLabel: lang === 'en' ? 'Buyer Jakarta' : 'Buyer Jakarta',
+      rightLabel: lang === 'en' ? 'Logistics provider' : 'Pihak logistik',
+      metric: '2-4 days',
+      status: lang === 'en' ? 'Route planning' : 'Perencanaan rute',
+      insight: lang === 'en'
+        ? 'Pantura route is feasible, with staged delivery and unloading coordination in Jakarta Utara.'
+        : 'Rute Pantura layak, dengan pengiriman bertahap dan koordinasi bongkar di Jakarta Utara.',
+      actionLabel: lang === 'en' ? 'Open transaction' : 'Buka transaksi',
+    },
+    {
+      id: 'logistics-chili-garut-bandung-2026',
+      scenarioId: 'chili-garut-bandung-2026',
+      title: lang === 'en' ? 'Fresh chili route: Garut to Bandung' : 'Rute cabai segar: Garut ke Bandung',
+      subtitle: lang === 'en' ? '800 kg, freshness-sensitive' : '800 kg, sensitif kesegaran',
+      leftLabel: lang === 'en' ? 'Buyer Bandung' : 'Buyer Bandung',
+      rightLabel: lang === 'en' ? 'Logistics provider' : 'Pihak logistik',
+      metric: 'High care',
+      status: lang === 'en' ? 'Needs buffer' : 'Butuh buffer',
+      insight: lang === 'en'
+        ? 'Pickup timing, packaging, and weather buffer matter more than distance for this candidate.'
+        : 'Jam pickup, kemasan, dan buffer cuaca lebih penting daripada jarak untuk kandidat ini.',
+      actionLabel: lang === 'en' ? 'Open transaction' : 'Buka transaksi',
+    },
+    {
+      id: 'logistics-corn-malang-surabaya-2026',
+      scenarioId: 'corn-malang-surabaya-2026',
+      title: lang === 'en' ? 'Bulk corn route: Malang to Surabaya' : 'Rute jagung bulk: Malang ke Surabaya',
+      subtitle: lang === 'en' ? '12 tons, accepted transaction' : '12 ton, transaksi diterima',
+      leftLabel: lang === 'en' ? 'Buyer Surabaya' : 'Buyer Surabaya',
+      rightLabel: lang === 'en' ? 'Logistics provider' : 'Pihak logistik',
+      metric: 'Stable',
+      status: lang === 'en' ? 'Ready to schedule' : 'Siap dijadwalkan',
+      insight: lang === 'en'
+        ? 'Accepted transaction can move into scheduling, truck allocation, and loading confirmation.'
+        : 'Transaksi accepted bisa lanjut ke penjadwalan, alokasi truk, dan konfirmasi muat.',
+      actionLabel: lang === 'en' ? 'Open transaction' : 'Buka transaksi',
+    },
+  ];
+
+  const selectLogisticsOpportunity = (opportunity: LogisticsOpportunity) => {
+    const relatedTransaction = transactions.find((tx) =>
+      parseTransactionTerms(tx.terms).connectionScenario === opportunity.scenarioId
+    );
+
+    if (relatedTransaction) {
+      setSelectedTx(relatedTransaction);
+      setError('');
+      return;
+    }
+
+    setError(lang === 'en'
+      ? 'No demo transaction is linked to this logistics opportunity yet.'
+      : 'Belum ada transaksi demo yang terhubung dengan peluang logistik ini.');
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -420,6 +486,18 @@ export default function TransactionsPage() {
           rightLabel={lang === 'en' ? 'Logistics provider' : 'Pihak Logistik'}
           leftIcon={ShoppingCart}
           rightIcon={Truck}
+        />
+      )}
+
+      {isLogisticsRole && (
+        <CapabilityOpportunityPanel
+          title={lang === 'en' ? 'Available logistics opportunities' : 'Peluang logistik yang tersedia'}
+          description={lang === 'en'
+            ? 'Pick a buyer delivery need to open the connected transaction and inspect route, date, and coordination details.'
+            : 'Pilih kebutuhan pengiriman pembeli untuk membuka transaksi terkait dan melihat rute, tanggal, serta detail koordinasi.'}
+          icon={Truck}
+          opportunities={logisticsOpportunities}
+          onSelect={(opportunity) => selectLogisticsOpportunity(opportunity as LogisticsOpportunity)}
         />
       )}
 
