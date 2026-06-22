@@ -13,8 +13,9 @@ import Textarea from '@/components/ui/Textarea';
 import Spinner from '@/components/ui/Spinner';
 import ResultSection from '@/components/shared/ResultSection';
 import FormInfoButton from '@/components/shared/FormInfoButton';
+import ConnectionFlowBanner from '@/components/shared/ConnectionFlowBanner';
 import ReactMarkdown from 'react-markdown';
-import { MapPin, BarChart3, Truck, Clock, DollarSign, ThumbsUp, History, ChevronDown, ChevronUp } from 'lucide-react';
+import { MapPin, BarChart3, Truck, Clock, DollarSign, ThumbsUp, History, ChevronDown, ChevronUp, Wheat, ShoppingCart } from 'lucide-react';
 
 interface MatchingResult {
   matchedRegions?: string;
@@ -178,6 +179,17 @@ export default function MatchingPage() {
         <p className="text-surface-500 mt-1">{t('matching.subtitle')}</p>
       </div>
 
+      <ConnectionFlowBanner
+        title={lang === 'en' ? 'Connection flow: Farmers meet buyers' : 'Alur koneksi: Petani bertemu pembeli'}
+        description={lang === 'en'
+          ? 'Supply matching is used to turn farmer supply and buyer demand into a clear sourcing opportunity.'
+          : 'Pencocokan pasokan dipakai untuk mempertemukan stok petani dan kebutuhan pembeli menjadi peluang sourcing yang jelas.'}
+        leftLabel={lang === 'en' ? 'Farmer supply' : 'Pasokan Petani'}
+        rightLabel={lang === 'en' ? 'Buyer demand' : 'Kebutuhan Pembeli'}
+        leftIcon={Wheat}
+        rightIcon={ShoppingCart}
+      />
+
       <div className="bg-white rounded-xl border border-surface-200">
         <button
           onClick={() => setShowHistory(!showHistory)}
@@ -215,16 +227,16 @@ export default function MatchingPage() {
       <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-surface-200 p-6 space-y-6">
         <div className="flex flex-col gap-3 rounded-lg border border-primary-100 bg-primary-50/50 p-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="text-base font-semibold text-gray-900">{lang === 'en' ? 'Supply Matching Form' : 'Form Pencocokan Pasokan'}</h2>
+            <h2 className="text-base font-semibold text-gray-900">{lang === 'en' ? 'Farmer-Buyer Matching Form' : 'Form Matching Petani-Pembeli'}</h2>
             <p className="mt-1 text-sm text-surface-600">
               {lang === 'en'
-                ? 'Use this to compare likely supply regions, capacity, logistics feasibility, and price fit.'
-                : 'Gunakan form ini untuk membandingkan daerah pasokan, kapasitas, kelayakan logistik, dan kecocokan harga.'}
+                ? 'Use this to connect available farm supply with buyer demand, including capacity, logistics feasibility, and price fit.'
+                : 'Gunakan form ini untuk menghubungkan pasokan petani dengan kebutuhan pembeli, termasuk kapasitas, logistik, dan kecocokan harga.'}
             </p>
           </div>
           <FormInfoButton
-            title={lang === 'en' ? 'Better matching input' : 'Input agar matching lebih akurat'}
-            description={lang === 'en' ? 'The model matches demand to production regions based on commodity, volume, destination, quality, and timeline.' : 'Model mencocokkan kebutuhan dengan daerah produksi berdasarkan komoditas, volume, tujuan, kualitas, dan timeline.'}
+            title={lang === 'en' ? 'Better farmer-buyer matching input' : 'Input agar matching petani-pembeli lebih akurat'}
+            description={lang === 'en' ? 'The model matches buyer demand to farmer supply regions based on commodity, volume, destination, quality, and timeline.' : 'Model mencocokkan kebutuhan pembeli dengan wilayah/pasokan petani berdasarkan komoditas, volume, tujuan, kualitas, dan timeline.'}
             tips={lang === 'en'
               ? ['Use the real destination city for logistics estimates.', 'Choose quality grade to filter realistic supplier options.', 'Write constraints in notes, such as cold chain, packaging, or urgent delivery.']
               : ['Isi kota tujuan sebenarnya untuk estimasi logistik.', 'Pilih grade kualitas agar opsi supplier lebih realistis.', 'Tulis batasan di catatan, misalnya cold chain, kemasan, atau pengiriman cepat.']}

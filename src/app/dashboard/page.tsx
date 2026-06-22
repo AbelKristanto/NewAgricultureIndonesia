@@ -112,20 +112,20 @@ const DASHBOARD_CAPABILITY_CONFIG: Record<
   '/dashboard/buyer': {
     labelKey: 'nav.buyer',
     icon: ShoppingCart,
-    descriptionEn: 'Plan sourcing demand, supplier regions, capacity, delivery timelines, and supply risks.',
-    descriptionId: 'Rencanakan kebutuhan sourcing, wilayah supplier, kapasitas, timeline kirim, dan risiko pasokan.',
+    descriptionEn: 'Define buyer demand so it can be connected to farmer supply and delivery planning.',
+    descriptionId: 'Definisikan kebutuhan pembeli agar bisa dihubungkan ke pasokan petani dan rencana kirim.',
   },
   '/dashboard/policy': {
     labelKey: 'nav.policy',
     icon: BarChart3,
-    descriptionEn: 'Review production, supply-demand gaps, risk zones, recommendations, and priority actions.',
-    descriptionId: 'Pantau produksi, gap supply-demand, zona risiko, rekomendasi, dan aksi prioritas.',
+    descriptionEn: 'For finance roles, connect farmer needs with financing institutions; for government, monitor policy risk.',
+    descriptionId: 'Untuk finance, hubungkan kebutuhan petani dengan lembaga keuangan; untuk pemerintah, pantau risiko kebijakan.',
   },
   '/dashboard/matching': {
     labelKey: 'nav.matching',
     icon: Handshake,
-    descriptionEn: 'Match commodity needs with supply regions, logistics feasibility, timeline, and price fit.',
-    descriptionId: 'Cocokkan kebutuhan komoditas dengan wilayah pasokan, logistik, timeline, dan harga.',
+    descriptionEn: 'Connect farmer supply with buyer demand, including capacity, logistics, timeline, and price fit.',
+    descriptionId: 'Hubungkan pasokan petani dengan kebutuhan pembeli, termasuk kapasitas, logistik, timeline, dan harga.',
   },
   '/dashboard/weather': {
     labelKey: 'nav.weather',
@@ -136,8 +136,8 @@ const DASHBOARD_CAPABILITY_CONFIG: Record<
   '/dashboard/transactions': {
     labelKey: 'nav.transactions',
     icon: FileSignature,
-    descriptionEn: 'Create, inspect, negotiate, and monitor role-based agricultural supply transactions.',
-    descriptionId: 'Buat, cek, negosiasikan, dan pantau transaksi pasokan pertanian sesuai role.',
+    descriptionEn: 'Coordinate buyer-farmer agreements and expose buyer delivery needs to logistics roles.',
+    descriptionId: 'Koordinasikan kesepakatan pembeli-petani dan tampilkan kebutuhan kirim pembeli ke role logistik.',
   },
   '/dashboard/chat': {
     labelKey: 'nav.chat',

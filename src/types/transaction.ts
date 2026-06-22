@@ -31,6 +31,12 @@ export interface TransactionNegotiationEntry {
 
 export interface TransactionTerms {
   note?: string | null;
+  connectionScenario?: string | null;
+  connectionFlow?: {
+    matching?: string | null;
+    finance?: string | null;
+    logistics?: string | null;
+  } | null;
   negotiationHistory?: TransactionNegotiationEntry[];
   participants?: Array<{
     user_id: string;

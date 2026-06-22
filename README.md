@@ -4,24 +4,23 @@ Serenagri AI is an AI-powered agricultural intelligence platform designed to opt
 
 ## Platform Capabilities
 
-- **Demand Forecasting** - Predict agricultural commodity demand patterns
+- **Buyer Sourcing Demand** - Capture buyer demand patterns for farmer matching
 - **Crop Recommendation** - AI-powered crop suitability analysis based on land data
-- **Supply-Demand Matching** - Connect buyers with optimal production regions
+- **Farmer-Buyer Supply Matching** - Connect farmer supply with buyer demand
 - **Weather Risk Analysis** - Climate risk assessment for agricultural planning
-- **Satellite-Based Crop Monitoring** - Simulated satellite monitoring insights
-- **Logistics Optimization** - Supply chain route and cost optimization
-- **Agricultural Input Planning** - Seeds, fertilizers, and equipment recommendations
-- **Government Subsidy Targeting** - Identify eligible support programs
-- **Agricultural Financing Assessment** - Credit scoring and financing options
-- **Contract Farming Recommendations** - Buyer-farmer agreement facilitation
+- **Buyer-Logistics Planning** - Connect buyer delivery needs with logistics providers
+- **Agricultural Financing Assessment** - Connect farmer needs with financial institutions
+- **Buyer-Farmer Transactions** - Contract drafting, negotiation, and monitoring
+- **Policy and Simulation Monitoring** - Government view over analysis and transaction data
+- **AI Advisory Chat** - Role-aware agricultural assistant
 
 ## Supported User Roles
 
 - **Farmers** - Crop recommendations, yield estimates, cost projections
-- **Buyers and food distributors** - Supplier sourcing, logistics planning
-- **Agricultural suppliers** - Market demand insights
-- **Logistics providers** - Route optimization
-- **Financial institutions** - Agricultural credit assessment
+- **Buyers and food distributors** - Demand planning, farmer matching, transactions, logistics planning
+- **Agricultural suppliers** - Input and market demand visibility around farmer-buyer matching
+- **Logistics providers** - Buyer delivery planning and route coordination
+- **Financial institutions** - Farmer financing assessment
 - **Government agencies** - Policy insights and food security monitoring
 
 ## Tech Stack

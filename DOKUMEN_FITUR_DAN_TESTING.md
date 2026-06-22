@@ -36,10 +36,10 @@ Gunakan akun berikut untuk menguji akses setiap role.
 | Role | Email | Password | Fokus Pengujian |
 |---|---|---|---|
 | Farmer | `farmer@serenagri.com` | `farmer123` | Analisis lahan, cuaca, matching, chat |
-| Buyer | `buyer@serenagri.com` | `buyer123` | Sourcing buyer, matching, transaksi, cuaca, chat |
-| Supplier | `supplier@serenagri.com` | `supplier123` | Matching, cuaca, transaksi read-only, chat |
-| Logistics | `logistics@serenagri.com` | `logistics123` | Transaksi, matching, cuaca, chat |
-| Finance | `finance@serenagri.com` | `finance123` | Policy, transaksi read-only, cuaca, chat |
+| Buyer | `buyer@serenagri.com` | `buyer123` | Demand sourcing, matching petani-pembeli, transaksi, cuaca, chat |
+| Supplier | `supplier@serenagri.com` | `supplier123` | Visibilitas demand/input di sekitar matching petani-pembeli, cuaca, transaksi read-only, chat |
+| Logistics | `logistics@serenagri.com` | `logistics123` | Perencanaan pembeli-logistik, transaksi, cuaca, chat |
+| Finance | `finance@serenagri.com` | `finance123` | Assessment pembiayaan petani-lembaga keuangan, transaksi read-only, cuaca, chat |
 | Government | `government@serenagri.com` | `government123` | Policy, farmer/buyer intelligence, simulation, semua monitoring |
 
 ## Seed Data Demo
@@ -60,7 +60,31 @@ npm run seed:transactions
 
 Seed bersifat idempotent untuk batch demo: saat dijalankan ulang, data demo batch sebelumnya akan dibersihkan lalu dibuat ulang.
 
+Dummy demo sekarang memakai skenario koneksi yang sama di history, chat, dan transaksi:
+
+| Skenario | Alur utama | Role yang terlihat |
+|---|---|---|
+| `rice-subang-jakarta-2026` | Petani Demo Subang bertemu Buyer Demo Jakarta untuk beras, lalu finance menilai kebutuhan modal kerja dan logistics melihat rute Subang - Jakarta Utara. | Farmer, Buyer, Finance, Logistics, Government |
+| `chili-garut-bandung-2026` | Petani Demo Garut bertemu Buyer Demo Bandung untuk cabai, lalu logistics menguji rute Garut - Bandung. | Buyer, Farmer, Logistics, Government |
+| `corn-malang-surabaya-2026` | Petani Demo Malang bertemu Buyer Demo Surabaya untuk jagung, supplier/input dan government bisa memantau konteks transaksi. | Supplier, Buyer, Farmer, Government |
+
+Gunakan ID skenario tersebut untuk mengecek apakah history matching, assessment pembiayaan, perencanaan logistik, chat, dan detail transaksi sudah saling terhubung secara naratif.
+
 ## Fitur Utama
+
+Capability yang dianggap utama di aplikasi saat ini:
+
+- Crop Recommendation: halaman Farmer Analysis.
+- Buyer Sourcing Demand: halaman Buyer Sourcing.
+- Farmer-Buyer Supply Matching: halaman Matching.
+- Weather Risk Analysis: halaman Weather Intelligence.
+- Buyer-Farmer Transactions: halaman Transactions.
+- Agricultural Financing Assessment: halaman Policy untuk role Finance.
+- Buyer-Logistics Planning: halaman Transactions untuk role Logistics.
+- Policy and Simulation Monitoring: halaman Policy dan Simulation untuk Government.
+- AI Advisory Chat: halaman Chat.
+
+Capability seperti subsidy, input planning, dan crop monitoring belum menjadi modul mandiri; saat ini muncul sebagai bagian hasil Farmer Analysis atau Simulation Monitoring.
 
 ### Dashboard
 
@@ -106,16 +130,22 @@ Uji dengan role:
 - Buyer
 - Government
 
-### Supply Matching
+### Farmer-Buyer Supply Matching
 
 Lokasi: `/dashboard/matching`
 
 Fitur:
 
-- Pencocokan pasokan berdasarkan komoditas, volume, tujuan, kualitas, dan timeline.
+- Pencocokan pasokan untuk mempertemukan petani dengan pembeli berdasarkan komoditas, volume, tujuan, kualitas, dan timeline.
 - Tombol `Info` untuk menjelaskan input matching.
 - Riwayat matching.
-- Klik riwayat memuat hasil matched regions, capacity, logistics, timeline, price, dan recommendation.
+- Klik riwayat memuat hasil wilayah/petani pemasok, capacity, logistics, timeline, price, dan recommendation.
+
+Alur yang harus terlihat:
+
+- Petani menyediakan pasokan.
+- Pembeli membawa kebutuhan demand.
+- Sistem menampilkan kecocokan, kapasitas, risiko logistik, dan rekomendasi tindak lanjut.
 
 Uji dengan role:
 
@@ -161,6 +191,8 @@ Uji dengan role:
 - Finance
 - Government
 
+Untuk role Finance, halaman ini berfungsi sebagai `Assessment Pembiayaan`: mempertemukan kebutuhan petani dengan lembaga keuangan berdasarkan sinyal produksi, risiko, wilayah, komoditas, dan transaksi.
+
 ### Chat AI
 
 Lokasi: `/dashboard/chat`
@@ -192,6 +224,8 @@ Uji tombol berdasarkan status:
 - Proposed: pihak yang berhak bisa counter, accept, atau reject.
 - Accepted: buyer/farmer bisa update ke in progress atau cancel.
 - Participant non buyer/farmer seperti supplier, logistics, finance, government hanya melihat detail sesuai akses.
+
+Untuk role Logistics, halaman transaksi juga menampilkan alur `Pembeli ↔ Pihak Logistik`, sehingga kebutuhan pengiriman pembeli, rute, tanggal, dan risiko operasional bisa terlihat untuk koordinasi logistik.
 
 ### Simulation
 

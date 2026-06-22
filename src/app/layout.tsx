@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { RoleProvider } from '@/contexts/RoleContext';
+import UiSoundEffects from '@/components/shared/UiSoundEffects';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -31,6 +32,7 @@ export default function RootLayout({
           <AuthProvider>
             <RoleProvider>
               {children}
+              <UiSoundEffects />
             </RoleProvider>
           </AuthProvider>
         </LanguageProvider>

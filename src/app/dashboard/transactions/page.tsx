@@ -25,6 +25,7 @@ import Spinner from '@/components/ui/Spinner';
 import Badge from '@/components/ui/Badge';
 import Textarea from '@/components/ui/Textarea';
 import FormInfoButton from '@/components/shared/FormInfoButton';
+import ConnectionFlowBanner from '@/components/shared/ConnectionFlowBanner';
 import {
   ArrowRightLeft,
   Check,
@@ -32,6 +33,8 @@ import {
   MessageSquareText,
   Plus,
   Send,
+  ShoppingCart,
+  Truck,
   X,
   XCircle,
 } from 'lucide-react';
@@ -92,6 +95,7 @@ export default function TransactionsPage() {
     [selectedTx]
   );
   const canCreateTransaction = user?.role === 'buyer';
+  const isLogisticsRole = user?.role === 'logistics';
   const currentParty = selectedTx && user ? getTransactionParty(selectedTx, user.id) : null;
   const currentParticipantLabel = selectedTx && user && !currentParty
     ? getTransactionParticipantLabel(selectedTx, user.id)
@@ -406,6 +410,19 @@ export default function TransactionsPage() {
         )}
       </div>
 
+      {isLogisticsRole && (
+        <ConnectionFlowBanner
+          title={lang === 'en' ? 'Connection flow: Buyers meet logistics providers' : 'Alur koneksi: Pembeli bertemu pihak logistik'}
+          description={lang === 'en'
+            ? 'Logistics planning makes buyer delivery needs visible to logistics providers so routes, timing, and risk buffers can be coordinated.'
+            : 'Perencanaan logistik membuat kebutuhan pengiriman pembeli terlihat oleh pihak logistik agar rute, waktu, dan buffer risiko bisa dikoordinasikan.'}
+          leftLabel={lang === 'en' ? 'Buyer delivery need' : 'Kebutuhan Kirim Pembeli'}
+          rightLabel={lang === 'en' ? 'Logistics provider' : 'Pihak Logistik'}
+          leftIcon={ShoppingCart}
+          rightIcon={Truck}
+        />
+      )}
+
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>
       )}
@@ -563,6 +580,39 @@ export default function TransactionsPage() {
               <p className="font-medium">{selectedTx.end_date || t('transactions.notSet')}</p>
             </div>
           </div>
+
+          {selectedTerms.connectionFlow && (
+            <div className="rounded-xl border border-primary-100 bg-primary-50/60 p-4">
+              <div className="flex items-center gap-2 text-primary-900">
+                <ArrowRightLeft className="h-4 w-4" />
+                <h3 className="font-semibold">
+                  {lang === 'en' ? 'Connected role flow' : 'Alur koneksi role'}
+                </h3>
+              </div>
+              <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                {selectedTerms.connectionFlow.matching && (
+                  <div className="rounded-lg bg-white border border-primary-100 p-3">
+                    <p className="text-xs font-medium uppercase tracking-wide text-primary-700">Matching</p>
+                    <p className="mt-1 text-gray-700">{selectedTerms.connectionFlow.matching}</p>
+                  </div>
+                )}
+                {selectedTerms.connectionFlow.finance && (
+                  <div className="rounded-lg bg-white border border-primary-100 p-3">
+                    <p className="text-xs font-medium uppercase tracking-wide text-primary-700">
+                      {lang === 'en' ? 'Finance' : 'Pembiayaan'}
+                    </p>
+                    <p className="mt-1 text-gray-700">{selectedTerms.connectionFlow.finance}</p>
+                  </div>
+                )}
+                {selectedTerms.connectionFlow.logistics && (
+                  <div className="rounded-lg bg-white border border-primary-100 p-3">
+                    <p className="text-xs font-medium uppercase tracking-wide text-primary-700">Logistics</p>
+                    <p className="mt-1 text-gray-700">{selectedTerms.connectionFlow.logistics}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_0.9fr] gap-6">
             <div className="space-y-4">

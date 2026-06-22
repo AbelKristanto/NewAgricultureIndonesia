@@ -24,6 +24,32 @@ const admin = createClient(supabaseUrl, serviceRoleKey, {
 });
 
 const BATCH_KEY = 'role-button-demo';
+const CONNECTION_SCENARIOS = {
+  rice: {
+    id: 'rice-subang-jakarta-2026',
+    farmerName: 'Petani Demo Subang',
+    buyerName: 'Buyer Demo Jakarta',
+    financeNeed: 180000000,
+    logisticsRoute: 'Subang - Pantura - Jakarta Utara',
+    matchedBy: 'Farmer-Buyer Supply Matching',
+  },
+  chili: {
+    id: 'chili-garut-bandung-2026',
+    farmerName: 'Petani Demo Garut',
+    buyerName: 'Buyer Demo Bandung',
+    financeNeed: 52000000,
+    logisticsRoute: 'Garut - Nagreg - Bandung',
+    matchedBy: 'Farmer-Buyer Supply Matching',
+  },
+  corn: {
+    id: 'corn-malang-surabaya-2026',
+    farmerName: 'Petani Demo Malang',
+    buyerName: 'Buyer Demo Surabaya',
+    financeNeed: 75000000,
+    logisticsRoute: 'Malang - Pandaan - Surabaya',
+    matchedBy: 'Farmer-Buyer Supply Matching',
+  },
+};
 
 const accounts = [
   { email: 'buyer@serenagri.com', role: 'buyer', label: 'Pembeli' },
@@ -85,14 +111,28 @@ async function main() {
 
   const buyerId = users.buyer.id;
   const farmerId = users.farmer.id;
-  const participants = ['supplier', 'logistics', 'finance', 'government'].map((role) => {
-    const account = accounts.find((item) => item.role === role);
-    return {
-      user_id: users[role].id,
-      role,
-      label: account?.label || role,
-    };
-  });
+  const createParticipants = (scenario) => [
+    {
+      user_id: users.supplier.id,
+      role: 'supplier',
+      label: `Supplier input - dukung ${scenario.farmerName}`,
+    },
+    {
+      user_id: users.logistics.id,
+      role: 'logistics',
+      label: `Pihak logistik - ${scenario.logisticsRoute}`,
+    },
+    {
+      user_id: users.finance.id,
+      role: 'finance',
+      label: `Lembaga keuangan - plafon IDR ${scenario.financeNeed.toLocaleString('id-ID')}`,
+    },
+    {
+      user_id: users.government.id,
+      role: 'government',
+      label: `Pemantau pemerintah - ${scenario.id}`,
+    },
+  ];
 
   const rows = [
     {
@@ -110,8 +150,14 @@ async function main() {
       status: 'draft',
       terms: {
         simulationBatch: BATCH_KEY,
-        note: 'Draft awal untuk buyer menguji tombol Kirim Proposal.',
-        participants,
+        connectionScenario: CONNECTION_SCENARIOS.rice.id,
+        connectionFlow: {
+          matching: `${CONNECTION_SCENARIOS.rice.matchedBy}: ${CONNECTION_SCENARIOS.rice.farmerName} ↔ ${CONNECTION_SCENARIOS.rice.buyerName}`,
+          finance: `Assessment pembiayaan petani: kebutuhan modal kerja IDR ${CONNECTION_SCENARIOS.rice.financeNeed.toLocaleString('id-ID')}`,
+          logistics: `Perencanaan pembeli-logistik: ${CONNECTION_SCENARIOS.rice.logisticsRoute}`,
+        },
+        note: 'Draft koneksi beras: buyer Jakarta dipertemukan dengan petani Subang. Gunakan untuk menguji submit proposal, finance assessment, dan rute logistik.',
+        participants: createParticipants(CONNECTION_SCENARIOS.rice),
         negotiationHistory: [
           createEntry({
             actorId: buyerId,
@@ -121,7 +167,7 @@ async function main() {
             pricePerUnit: 11800000,
             startDate: '2026-07-01',
             endDate: '2026-07-20',
-            note: 'Draft awal pengadaan beras role-demo.',
+            note: `Draft awal dari matching ${CONNECTION_SCENARIOS.rice.id}. Finance menilai modal kerja, logistics menyiapkan rute ${CONNECTION_SCENARIOS.rice.logisticsRoute}.`,
           }),
         ],
       },
@@ -141,8 +187,14 @@ async function main() {
       status: 'proposed',
       terms: {
         simulationBatch: BATCH_KEY,
-        note: 'Proposal aktif untuk farmer menguji tombol counter, accept, dan reject.',
-        participants,
+        connectionScenario: CONNECTION_SCENARIOS.chili.id,
+        connectionFlow: {
+          matching: `${CONNECTION_SCENARIOS.chili.matchedBy}: ${CONNECTION_SCENARIOS.chili.farmerName} ↔ ${CONNECTION_SCENARIOS.chili.buyerName}`,
+          finance: `Assessment pembiayaan petani: kebutuhan modal kerja IDR ${CONNECTION_SCENARIOS.chili.financeNeed.toLocaleString('id-ID')}`,
+          logistics: `Perencanaan pembeli-logistik: ${CONNECTION_SCENARIOS.chili.logisticsRoute}`,
+        },
+        note: 'Proposal cabai: pembeli Bandung dipertemukan dengan petani Garut. Cocok untuk menguji counter/accept/reject dan koordinasi logistik.',
+        participants: createParticipants(CONNECTION_SCENARIOS.chili),
         negotiationHistory: [
           createEntry({
             actorId: buyerId,
@@ -152,7 +204,7 @@ async function main() {
             pricePerUnit: 78000,
             startDate: '2026-07-05',
             endDate: '2026-07-12',
-            note: 'Proposal cabai mingguan untuk restoran.',
+            note: `Proposal dari koneksi ${CONNECTION_SCENARIOS.chili.id}; logistics perlu buffer pengiriman di rute ${CONNECTION_SCENARIOS.chili.logisticsRoute}.`,
           }),
         ],
       },
@@ -172,8 +224,14 @@ async function main() {
       status: 'accepted',
       terms: {
         simulationBatch: BATCH_KEY,
-        note: 'Transaksi diterima untuk menguji tombol mulai proses atau batalkan.',
-        participants,
+        connectionScenario: CONNECTION_SCENARIOS.corn.id,
+        connectionFlow: {
+          matching: `${CONNECTION_SCENARIOS.corn.matchedBy}: ${CONNECTION_SCENARIOS.corn.farmerName} ↔ ${CONNECTION_SCENARIOS.corn.buyerName}`,
+          finance: `Assessment pembiayaan petani: kebutuhan modal kerja IDR ${CONNECTION_SCENARIOS.corn.financeNeed.toLocaleString('id-ID')}`,
+          logistics: `Perencanaan pembeli-logistik: ${CONNECTION_SCENARIOS.corn.logisticsRoute}`,
+        },
+        note: 'Transaksi jagung sudah diterima: pembeli Surabaya, petani Malang, finance memantau modal kerja, logistics menyiapkan rute.',
+        participants: createParticipants(CONNECTION_SCENARIOS.corn),
         negotiationHistory: [
           createEntry({
             actorId: buyerId,
@@ -183,7 +241,7 @@ async function main() {
             pricePerUnit: 5400000,
             startDate: '2026-08-01',
             endDate: '2026-08-18',
-            note: 'Proposal jagung untuk suplai pakan.',
+            note: `Proposal jagung dari koneksi ${CONNECTION_SCENARIOS.corn.id}; lanjutkan ke rute ${CONNECTION_SCENARIOS.corn.logisticsRoute}.`,
           }),
           createEntry({
             actorId: farmerId,
@@ -193,7 +251,7 @@ async function main() {
             pricePerUnit: 5400000,
             startDate: '2026-08-01',
             endDate: '2026-08-18',
-            note: 'Petani menyetujui harga dan jadwal.',
+            note: 'Petani menyetujui harga dan jadwal; finance dan logistics dapat memantau sebagai participant.',
           }),
         ],
       },

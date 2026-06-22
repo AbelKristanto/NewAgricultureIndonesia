@@ -11,8 +11,9 @@ import Select from '@/components/ui/Select';
 import Spinner from '@/components/ui/Spinner';
 import ResultSection from '@/components/shared/ResultSection';
 import FormInfoButton from '@/components/shared/FormInfoButton';
+import ConnectionFlowBanner from '@/components/shared/ConnectionFlowBanner';
 import ReactMarkdown from 'react-markdown';
-import { MapPin, TrendingUp, AlertTriangle, FileText, Target, History, ChevronDown, ChevronUp } from 'lucide-react';
+import { MapPin, TrendingUp, AlertTriangle, FileText, Target, History, ChevronDown, ChevronUp, Wheat, Landmark } from 'lucide-react';
 
 interface PolicyResult {
   productionOverview?: string;
@@ -46,6 +47,7 @@ export default function PolicyPage() {
   const [selectedCommodities, setSelectedCommodities] = useState<string[]>([]);
   const [selectedAnalysis, setSelectedAnalysis] = useState<string[]>([]);
   const [timeHorizon, setTimeHorizon] = useState('current-season');
+  const isFinanceRole = user?.role === 'finance';
 
   const toggleSelection = (arr: string[], value: string, setter: (v: string[]) => void) => {
     setter(arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value]);
@@ -146,9 +148,32 @@ export default function PolicyPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">{t('policy.title')}</h1>
-        <p className="text-surface-500 mt-1">{t('policy.subtitle')}</p>
+        <h1 className="text-2xl font-bold text-gray-900">
+          {isFinanceRole
+            ? (lang === 'en' ? 'Agricultural Financing Assessment' : 'Assessment Pembiayaan Pertanian')
+            : t('policy.title')}
+        </h1>
+        <p className="text-surface-500 mt-1">
+          {isFinanceRole
+            ? (lang === 'en'
+              ? 'Connect farmer needs with financing institutions through production, risk, and transaction signals.'
+              : 'Hubungkan kebutuhan petani dengan lembaga keuangan melalui sinyal produksi, risiko, dan transaksi.')
+            : t('policy.subtitle')}
+        </p>
       </div>
+
+      {isFinanceRole && (
+        <ConnectionFlowBanner
+          title={lang === 'en' ? 'Connection flow: Farmers meet financing institutions' : 'Alur koneksi: Petani bertemu lembaga keuangan'}
+          description={lang === 'en'
+            ? 'The finance assessment helps identify where farmer production plans and risk profiles can become financing opportunities.'
+            : 'Assessment pembiayaan membantu membaca rencana produksi dan profil risiko petani sebagai peluang pembiayaan.'}
+          leftLabel={lang === 'en' ? 'Farmer need' : 'Kebutuhan Petani'}
+          rightLabel={lang === 'en' ? 'Financial institution' : 'Lembaga Keuangan'}
+          leftIcon={Wheat}
+          rightIcon={Landmark}
+        />
+      )}
 
       {/* History Panel */}
       <div className="bg-white rounded-xl border border-surface-200">
@@ -188,16 +213,28 @@ export default function PolicyPage() {
       <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-surface-200 p-6 space-y-6">
         <div className="flex flex-col gap-3 rounded-lg border border-primary-100 bg-primary-50/50 p-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="text-base font-semibold text-gray-900">{lang === 'en' ? 'Policy Intelligence Form' : 'Form Intelijen Kebijakan'}</h2>
+            <h2 className="text-base font-semibold text-gray-900">
+              {isFinanceRole
+                ? (lang === 'en' ? 'Financing Assessment Form' : 'Form Assessment Pembiayaan')
+                : (lang === 'en' ? 'Policy Intelligence Form' : 'Form Intelijen Kebijakan')}
+            </h2>
             <p className="mt-1 text-sm text-surface-600">
-              {lang === 'en'
-                ? 'Select policy scope to analyze production, supply-demand gaps, risk zones, and priority actions.'
-                : 'Pilih cakupan kebijakan untuk menganalisis produksi, gap supply-demand, zona risiko, dan aksi prioritas.'}
+              {isFinanceRole
+                ? (lang === 'en'
+                  ? 'Select region and commodity scope to assess farmer financing fit and risk.'
+                  : 'Pilih wilayah dan komoditas untuk menilai kecocokan pembiayaan petani dan risikonya.')
+                : (lang === 'en'
+                  ? 'Select policy scope to analyze production, supply-demand gaps, risk zones, and priority actions.'
+                  : 'Pilih cakupan kebijakan untuk menganalisis produksi, gap supply-demand, zona risiko, dan aksi prioritas.')}
             </p>
           </div>
           <FormInfoButton
-            title={lang === 'en' ? 'Choosing policy scope' : 'Memilih cakupan kebijakan'}
-            description={lang === 'en' ? 'You can leave regions empty for a national view, then narrow commodities and analysis types for sharper recommendations.' : 'Wilayah boleh dikosongkan untuk analisis nasional, lalu persempit komoditas dan jenis analisis agar rekomendasi lebih tajam.'}
+            title={isFinanceRole ? (lang === 'en' ? 'Choosing financing scope' : 'Memilih cakupan pembiayaan') : (lang === 'en' ? 'Choosing policy scope' : 'Memilih cakupan kebijakan')}
+            description={isFinanceRole
+              ? (lang === 'en'
+                ? 'Use this to understand which farmer groups, commodities, and risk zones are most financeable.'
+                : 'Gunakan ini untuk memahami kelompok petani, komoditas, dan zona risiko yang paling layak dibiayai.')
+              : (lang === 'en' ? 'You can leave regions empty for a national view, then narrow commodities and analysis types for sharper recommendations.' : 'Wilayah boleh dikosongkan untuk analisis nasional, lalu persempit komoditas dan jenis analisis agar rekomendasi lebih tajam.')}
             tips={lang === 'en'
               ? ['Pick 1-3 regions for regional planning.', 'Select multiple analysis types when comparing budget or risk priorities.', 'Use longer horizons for investment and infrastructure decisions.']
               : ['Pilih 1-3 wilayah untuk perencanaan regional.', 'Pilih beberapa jenis analisis saat membandingkan prioritas anggaran atau risiko.', 'Gunakan horizon lebih panjang untuk investasi dan infrastruktur.']}

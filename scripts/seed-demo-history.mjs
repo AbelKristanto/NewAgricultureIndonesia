@@ -23,6 +23,50 @@ const admin = createClient(supabaseUrl, serviceRoleKey, {
 });
 
 const BATCH_KEY = 'role-history-demo';
+const CONNECTION_SCENARIOS = {
+  rice: {
+    id: 'rice-subang-jakarta-2026',
+    commodity: 'rice',
+    farmerRegion: 'Subang, Jawa Barat',
+    buyerName: 'Buyer Demo Jakarta',
+    farmerName: 'Petani Demo Subang',
+    deliveryProvince: 'dki-jakarta',
+    deliveryCity: 'Jakarta Utara',
+    volume: 25,
+    volumeUnit: 'tons',
+    pricePerUnit: 11800000,
+    financingNeed: 180000000,
+    logisticsRoute: 'Subang - Pantura - Jakarta Utara',
+  },
+  chili: {
+    id: 'chili-garut-bandung-2026',
+    commodity: 'chili',
+    farmerRegion: 'Garut, Jawa Barat',
+    buyerName: 'Buyer Demo Bandung',
+    farmerName: 'Petani Demo Garut',
+    deliveryProvince: 'jawa-barat',
+    deliveryCity: 'Bandung',
+    volume: 800,
+    volumeUnit: 'kg',
+    pricePerUnit: 78000,
+    financingNeed: 52000000,
+    logisticsRoute: 'Garut - Nagreg - Bandung',
+  },
+  corn: {
+    id: 'corn-malang-surabaya-2026',
+    commodity: 'corn',
+    farmerRegion: 'Malang, Jawa Timur',
+    buyerName: 'Buyer Demo Surabaya',
+    farmerName: 'Petani Demo Malang',
+    deliveryProvince: 'jawa-timur',
+    deliveryCity: 'Surabaya',
+    volume: 12,
+    volumeUnit: 'tons',
+    pricePerUnit: 5400000,
+    financingNeed: 75000000,
+    logisticsRoute: 'Malang - Pandaan - Surabaya',
+  },
+};
 
 const accounts = [
   { email: 'farmer@serenagri.com', role: 'farmer', name: 'Petani Demo' },
@@ -56,6 +100,7 @@ function analysisRow(userId, input, result, dayOffset) {
 }
 
 function farmerRows(userId, role) {
+  const scenario = CONNECTION_SCENARIOS.rice;
   return [
     analysisRow(
       userId,
@@ -69,7 +114,8 @@ function farmerRows(userId, role) {
         currentCrops: 'rice, chili',
         budget: 18000000,
         timeline: '1-season',
-        notes: 'Demo history untuk rekomendasi tanam dan kebutuhan input.',
+        notes: `Demo koneksi ${scenario.id}: rencana pasokan ${scenario.commodity} dari ${scenario.farmerRegion} untuk ${scenario.buyerName}.`,
+        connectionScenario: scenario.id,
         lang: 'id',
       },
       {
@@ -96,9 +142,9 @@ function farmerRows(userId, role) {
           { category: 'Fertilizer', estimatedCost: 'IDR 5.800.000', notes: 'NPK, urea, dan organik.' },
         ],
         weatherRisks: 'Risiko hujan tinggi perlu mitigasi drainase dan jadwal tanam maju 1-2 minggu.',
-        buyerMatching: 'Buyer Jakarta dan Bandung cocok untuk kontrak beras/cabai mingguan.',
-        inputRequirements: 'Prioritaskan benih padi genjah, NPK, dolomit, dan mulsa cabai.',
-        subsidies: 'Cek alokasi pupuk bersubsidi dan bantuan alsintan di dinas setempat.',
+        buyerMatching: `${scenario.buyerName} cocok untuk kontrak ${scenario.volume} ${scenario.volumeUnit} ke ${scenario.deliveryCity}. Gunakan halaman Matching untuk menghubungkan kebutuhan pembeli dengan pasokan petani.`,
+        inputRequirements: `Prioritaskan benih padi genjah, NPK, dolomit, dan jadwal panen yang selaras dengan rute ${scenario.logisticsRoute}.`,
+        subsidies: `Kebutuhan modal kerja sekitar IDR ${scenario.financingNeed.toLocaleString('id-ID')} bisa dipakai sebagai bahan assessment lembaga keuangan.`,
       },
       role === 'government' ? 2 : 1
     ),
@@ -106,31 +152,33 @@ function farmerRows(userId, role) {
 }
 
 function buyerRows(userId, role) {
+  const scenario = role === 'government' ? CONNECTION_SCENARIOS.corn : CONNECTION_SCENARIOS.rice;
   return [
     analysisRow(
       userId,
       {
-        commodityType: role === 'government' ? 'corn' : 'rice',
-        volume: role === 'government' ? 75 : 40,
-        volumeUnit: 'tons',
+        commodityType: scenario.commodity,
+        volume: scenario.volume,
+        volumeUnit: scenario.volumeUnit,
         qualityGrade: 'grade-a',
-        deliveryProvince: 'dki-jakarta',
-        deliveryCity: 'Jakarta Utara',
+        deliveryProvince: scenario.deliveryProvince,
+        deliveryCity: scenario.deliveryCity,
         startMonth: '07',
         endMonth: '09',
         frequency: 'monthly',
         budgetMin: 420000000,
         budgetMax: 560000000,
-        specialRequirements: 'Demo sourcing untuk kontrak pasokan terjadwal.',
+        specialRequirements: `Demo koneksi ${scenario.id}: cari pasokan dari ${scenario.farmerName} untuk dikunci ke transaksi.`,
+        connectionScenario: scenario.id,
         lang: 'id',
       },
       {
-        productionRegions: 'Karawang, Subang, dan Indramayu menjadi sumber utama dengan jarak logistik pendek.',
-        supplyCapacity: 'Kapasitas realistis 35-55 ton per bulan dari 3-5 kelompok tani.',
-        logisticsRoutes: 'Rute Pantura menuju Jakarta Utara paling stabil untuk pengiriman bulanan.',
+        productionRegions: `${scenario.farmerRegion} direkomendasikan karena dekat dengan rute ${scenario.logisticsRoute}.`,
+        supplyCapacity: `Kapasitas realistis ${scenario.volume} ${scenario.volumeUnit} per siklus dari ${scenario.farmerName}.`,
+        logisticsRoutes: `${scenario.logisticsRoute} menjadi rute utama untuk dikaitkan dengan role Logistics.`,
         deliveryTimeline: 'Lead time 2-4 hari setelah quality check dan konsolidasi gudang.',
         supplyRisk: 'Risiko utama adalah hujan ekstrem dan fluktuasi harga menjelang panen raya.',
-        recommendedSuppliers: 'Prioritaskan koperasi Subang dan agregator Karawang untuk konsistensi volume.',
+        recommendedSuppliers: `Prioritaskan ${scenario.farmerName}; lanjutkan ke Matching lalu buat transaksi buyer-farmer.`,
       },
       role === 'government' ? 3 : 1
     ),
@@ -138,22 +186,28 @@ function buyerRows(userId, role) {
 }
 
 function policyRows(userId, role) {
+  const scenario = role === 'finance' ? CONNECTION_SCENARIOS.rice : CONNECTION_SCENARIOS.corn;
   return [
     analysisRow(
       userId,
       {
         regions: role === 'finance' ? ['jawa-barat', 'jawa-tengah'] : ['jawa-barat', 'jawa-tengah', 'jawa-timur'],
-        commodities: role === 'finance' ? ['rice', 'chili'] : ['rice', 'corn'],
+        commodities: role === 'finance' ? [scenario.commodity, 'chili'] : ['rice', scenario.commodity],
         analysisTypes: ['production-capacity', 'food-supply-gaps', 'demand-supply'],
         timeHorizon: role === 'finance' ? '1-year' : '5-years',
+        connectionScenario: scenario.id,
         lang: 'id',
       },
       {
-        productionOverview: 'Sentra Jawa masih kuat, tetapi perlu stabilisasi gudang dan kontrak pasokan lintas musim.',
-        supplyDemandAnalysis: 'Permintaan perkotaan naik 8-12%, sementara produksi rentan pada cuaca ekstrem.',
-        riskZones: 'Risiko tinggi di wilayah banjir Pantura dan area tadah hujan saat kemarau panjang.',
-        policyRecommendations: 'Dorong kontrak farming, cadangan pangan regional, dan pembiayaan modal kerja pascapanen.',
-        priorityActions: '1. Verifikasi stok kabupaten. 2. Perkuat logistik dingin. 3. Aktifkan pembiayaan invoice.',
+        productionOverview: `${scenario.farmerRegion} layak menjadi sumber ${scenario.commodity} untuk ${scenario.buyerName}.`,
+        supplyDemandAnalysis: `Demand ${scenario.volume} ${scenario.volumeUnit} dapat diikat lewat transaksi buyer-farmer dengan nilai acuan IDR ${(scenario.pricePerUnit * scenario.volume).toLocaleString('id-ID')}.`,
+        riskZones: `Risiko utama berada di rute ${scenario.logisticsRoute} dan kebutuhan modal kerja petani sebelum panen.`,
+        policyRecommendations: role === 'finance'
+          ? `Hubungkan ${scenario.farmerName} dengan lembaga keuangan untuk plafon modal kerja sekitar IDR ${scenario.financingNeed.toLocaleString('id-ID')}.`
+          : 'Dorong kontrak farming, cadangan pangan regional, dan pembiayaan modal kerja pascapanen.',
+        priorityActions: role === 'finance'
+          ? '1. Validasi transaksi buyer-farmer. 2. Cek riwayat produksi petani. 3. Siapkan assessment invoice/PO financing.'
+          : '1. Verifikasi stok kabupaten. 2. Perkuat logistik dingin. 3. Aktifkan pembiayaan invoice.',
       },
       role === 'finance' ? 1 : 2
     ),
@@ -161,28 +215,34 @@ function policyRows(userId, role) {
 }
 
 function matchingRows(userId, role) {
-  const commodity = role === 'supplier' ? 'corn' : role === 'logistics' ? 'chili' : 'rice';
+  const scenario =
+    role === 'logistics'
+      ? CONNECTION_SCENARIOS.chili
+      : role === 'supplier'
+        ? CONNECTION_SCENARIOS.corn
+        : CONNECTION_SCENARIOS.rice;
   return [
     analysisRow(
       userId,
       {
-        commodity,
-        volume: role === 'logistics' ? 900 : 30,
-        volumeUnit: role === 'logistics' ? 'kg' : 'tons',
-        deliveryProvince: role === 'logistics' ? 'jawa-barat' : 'dki-jakarta',
-        deliveryCity: role === 'logistics' ? 'Bandung' : 'Jakarta Utara',
+        commodity: scenario.commodity,
+        volume: scenario.volume,
+        volumeUnit: scenario.volumeUnit,
+        deliveryProvince: scenario.deliveryProvince,
+        deliveryCity: scenario.deliveryCity,
         qualityGrade: role === 'supplier' ? 'standard' : 'grade-a',
         timeline: '1-season',
-        notes: `Demo pencocokan pasokan untuk role ${role}.`,
+        notes: `Demo ${scenario.id}: ${scenario.farmerName} dipertemukan dengan ${scenario.buyerName}.`,
+        connectionScenario: scenario.id,
         lang: 'id',
       },
       {
-        matchedRegions: 'Subang, Karawang, Garut, dan Malang menjadi kandidat tergantung komoditas dan timeline.',
-        capacityEstimates: 'Kapasitas aman tersedia 70-85% dari kebutuhan; sisanya perlu buffer supplier cadangan.',
-        logisticsFeasibility: 'Rute utama layak dengan konsolidasi gudang dan jadwal muat pagi.',
+        matchedRegions: `${scenario.farmerName} di ${scenario.farmerRegion} menjadi kandidat utama untuk ${scenario.buyerName}.`,
+        capacityEstimates: `Kapasitas ${scenario.volume} ${scenario.volumeUnit} sesuai kebutuhan buyer; buffer 10-15% disarankan.`,
+        logisticsFeasibility: `Rute ${scenario.logisticsRoute} layak, perlu konfirmasi jadwal muat dan armada oleh role Logistics.`,
         timeline: 'Matching awal 1-2 hari, negosiasi 3-5 hari, pengiriman pertama 7-14 hari.',
-        priceAnalysis: 'Harga berada di rentang pasar menengah; kontrak volume bisa menekan 3-5%.',
-        recommendations: 'Gunakan 2 pemasok utama dan 1 cadangan, lalu kunci SLA kualitas di transaksi.',
+        priceAnalysis: `Harga acuan IDR ${scenario.pricePerUnit.toLocaleString('id-ID')} per unit; cocok untuk draft transaksi.`,
+        recommendations: `Buat transaksi ${scenario.commodity} antara ${scenario.buyerName} dan ${scenario.farmerName}; libatkan Logistics untuk ${scenario.logisticsRoute} dan Finance untuk modal kerja petani.`,
       },
       role === 'supplier' ? 1 : role === 'logistics' ? 2 : 3
     ),
@@ -190,23 +250,30 @@ function matchingRows(userId, role) {
 }
 
 function weatherRows(userId, role) {
+  const scenario =
+    role === 'logistics'
+      ? CONNECTION_SCENARIOS.chili
+      : role === 'supplier'
+        ? CONNECTION_SCENARIOS.corn
+        : CONNECTION_SCENARIOS.rice;
   return [
     analysisRow(
       userId,
       {
-        regions: role === 'logistics' ? ['jawa-timur'] : ['jawa-barat'],
-        crops: role === 'supplier' ? ['corn'] : ['rice', 'chili'],
+        regions: role === 'logistics' ? [scenario.deliveryProvince] : ['jawa-barat'],
+        crops: role === 'supplier' ? ['corn'] : [scenario.commodity, 'chili'],
         scenario: role === 'finance' ? 'drought' : 'heavy-rain',
         season: role === 'finance' ? 'dry-season' : 'wet-season',
-        notes: `Demo intelijen cuaca untuk role ${role}.`,
+        notes: `Demo cuaca untuk koneksi ${scenario.id} dan rute ${scenario.logisticsRoute}.`,
+        connectionScenario: scenario.id,
         lang: 'id',
       },
       {
-        impactAssessment: 'Dampak sedang-tinggi pada jadwal panen dan kualitas pengiriman.',
+        impactAssessment: `Dampak sedang-tinggi pada jadwal panen ${scenario.farmerName} dan pengiriman ke ${scenario.deliveryCity}.`,
         cropAdjustments: 'Gunakan varietas toleran, perbaiki drainase, dan geser tanam untuk area rawan.',
         irrigationPlanning: 'Prioritaskan blok tanaman bernilai tinggi dan siapkan pompa/embung cadangan.',
-        revisedSchedule: 'Majukan inspeksi lahan 7 hari dan beri buffer pengiriman 2 hari.',
-        mitigationStrategies: 'Aktifkan monitoring curah hujan, asuransi tani, dan kontrak fleksibel.',
+        revisedSchedule: `Majukan inspeksi lahan 7 hari dan beri buffer pengiriman 2 hari di rute ${scenario.logisticsRoute}.`,
+        mitigationStrategies: 'Aktifkan monitoring curah hujan, asuransi tani, kontrak fleksibel, dan notifikasi ke buyer/logistics.',
         riskLevel: role === 'finance' ? 'medium' : 'high',
       },
       role === 'finance' ? 2 : 1
@@ -216,6 +283,12 @@ function weatherRows(userId, role) {
 
 function chatRows(userId, role, name) {
   const title = `[Demo History] ${name} - ${role}`;
+  const scenario =
+    role === 'logistics'
+      ? CONNECTION_SCENARIOS.chili
+      : role === 'supplier'
+        ? CONNECTION_SCENARIOS.corn
+        : CONNECTION_SCENARIOS.rice;
   const now = daysAgo(1);
   return {
     conversation: {
@@ -228,13 +301,13 @@ function chatRows(userId, role, name) {
       {
         user_id: userId,
         role: 'user',
-        content: `Apa rekomendasi utama untuk role ${role} minggu ini?`,
+        content: `Bagaimana saya melanjutkan koneksi ${scenario.id} untuk role ${role}?`,
         created_at: daysAgo(1),
       },
       {
         user_id: userId,
         role: 'assistant',
-        content: 'Fokus pada item prioritas di dashboard: cek history analisis, validasi transaksi demo, dan gunakan pencocokan pasokan untuk membandingkan opsi.',
+        content: `Mulai dari history matching ${scenario.commodity}, cek transaksi demo terkait, lalu libatkan role pendukung: logistics untuk rute ${scenario.logisticsRoute} dan finance untuk kebutuhan modal kerja petani.`,
         created_at: daysAgo(1),
       },
     ],

@@ -79,8 +79,18 @@ export function parseTransactionTerms(terms: unknown): TransactionTerms {
       }))
     : [];
 
+  const connectionFlow = isObject(terms.connectionFlow)
+    ? {
+        matching: typeof terms.connectionFlow.matching === 'string' ? terms.connectionFlow.matching : null,
+        finance: typeof terms.connectionFlow.finance === 'string' ? terms.connectionFlow.finance : null,
+        logistics: typeof terms.connectionFlow.logistics === 'string' ? terms.connectionFlow.logistics : null,
+      }
+    : null;
+
   return {
     note: typeof terms.note === 'string' ? terms.note : null,
+    connectionScenario: typeof terms.connectionScenario === 'string' ? terms.connectionScenario : null,
+    connectionFlow,
     participants,
     negotiationHistory: history,
   };
