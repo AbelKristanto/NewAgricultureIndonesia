@@ -16,7 +16,23 @@ import FormInfoButton from '@/components/shared/FormInfoButton';
 import ConnectionFlowBanner from '@/components/shared/ConnectionFlowBanner';
 import CapabilityOpportunityPanel, { CapabilityOpportunity } from '@/components/shared/CapabilityOpportunityPanel';
 import ReactMarkdown from 'react-markdown';
-import { MapPin, BarChart3, Truck, Clock, DollarSign, ThumbsUp, History, ChevronDown, ChevronUp, Wheat, ShoppingCart, Sparkles } from 'lucide-react';
+import {
+  MapPin,
+  BarChart3,
+  Truck,
+  Clock,
+  DollarSign,
+  ThumbsUp,
+  History,
+  ChevronDown,
+  ChevronUp,
+  Wheat,
+  ShoppingCart,
+  Sparkles,
+  Hourglass,
+  CheckCircle2,
+  XCircle,
+} from 'lucide-react';
 
 interface MatchingResult {
   matchedRegions?: string;
@@ -60,6 +76,8 @@ export default function MatchingPage() {
   const [error, setError] = useState('');
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [selectedOpportunity, setSelectedOpportunity] = useState<MatchingOpportunity | null>(null);
+  const [matchRequestStatus, setMatchRequestStatus] = useState<'waiting' | 'accepted' | 'rejected' | null>(null);
 
   const [form, setForm] = useState({
     commodity: '',
@@ -77,6 +95,8 @@ export default function MatchingPage() {
     setLoading(true);
     setError('');
     setResults(null);
+    setSelectedOpportunity(null);
+    setMatchRequestStatus(null);
 
     const input: MatchingInput = {
       commodity: form.commodity,
@@ -201,7 +221,9 @@ export default function MatchingPage() {
       insight: lang === 'en'
         ? 'Irrigated rice supply can meet Jakarta buyer demand with a short Pantura route.'
         : 'Pasokan padi irigasi cocok dengan demand buyer Jakarta melalui rute Pantura yang pendek.',
-      actionLabel: lang === 'en' ? 'Use match' : 'Pakai kandidat',
+      actionLabel: user?.role === 'buyer'
+        ? (lang === 'en' ? 'Request farmer' : 'Ajukan ke petani')
+        : (lang === 'en' ? 'Request buyer' : 'Ajukan ke pembeli'),
       form: {
         commodity: 'rice',
         volume: '25',
@@ -232,7 +254,9 @@ export default function MatchingPage() {
       insight: lang === 'en'
         ? 'Garut supply fits Bandung demand, but logistics should buffer weather and freshness risk.'
         : 'Pasokan Garut cocok untuk demand Bandung, tetapi logistics perlu buffer cuaca dan kesegaran.',
-      actionLabel: lang === 'en' ? 'Use match' : 'Pakai kandidat',
+      actionLabel: user?.role === 'buyer'
+        ? (lang === 'en' ? 'Request farmer' : 'Ajukan ke petani')
+        : (lang === 'en' ? 'Request buyer' : 'Ajukan ke pembeli'),
       form: {
         commodity: 'chili',
         volume: '800',
@@ -263,7 +287,9 @@ export default function MatchingPage() {
       insight: lang === 'en'
         ? 'Corn supply is suitable for Surabaya feed demand and can expose input needs to suppliers.'
         : 'Pasokan jagung cocok untuk demand pakan Surabaya dan kebutuhan inputnya bisa dilihat supplier.',
-      actionLabel: lang === 'en' ? 'Use match' : 'Pakai kandidat',
+      actionLabel: user?.role === 'buyer'
+        ? (lang === 'en' ? 'Request farmer' : 'Ajukan ke petani')
+        : (lang === 'en' ? 'Request buyer' : 'Ajukan ke pembeli'),
       form: {
         commodity: 'corn',
         volume: '12',
@@ -287,9 +313,21 @@ export default function MatchingPage() {
 
   const selectOpportunity = (opportunity: MatchingOpportunity) => {
     setForm(opportunity.form);
-    setResults(opportunity.result);
+    setSelectedOpportunity(opportunity);
+    setMatchRequestStatus('waiting');
+    setResults(null);
     setError('');
   };
+
+  const counterpartyLabel = user?.role === 'buyer'
+    ? (lang === 'en' ? 'farmer' : 'petani')
+    : (lang === 'en' ? 'buyer' : 'pembeli');
+
+  const initiatorLabel = user?.role === 'buyer'
+    ? (lang === 'en' ? 'Buyer' : 'Pembeli')
+    : user?.role === 'farmer'
+      ? (lang === 'en' ? 'Farmer' : 'Petani')
+      : (lang === 'en' ? 'Current role' : 'Role saat ini');
 
   return (
     <div className="space-y-6">
@@ -312,12 +350,97 @@ export default function MatchingPage() {
       <CapabilityOpportunityPanel
         title={lang === 'en' ? 'Available matching opportunities' : 'Peluang matching yang tersedia'}
         description={lang === 'en'
-          ? 'Pick a candidate to simulate how farmer supply and buyer demand become a match before moving into transactions.'
-          : 'Pilih kandidat untuk mensimulasikan bagaimana pasokan petani dan demand pembeli menjadi matching sebelum lanjut ke transaksi.'}
+          ? 'Use the form to find suitable candidates, then request one candidate and wait for the counterparty response.'
+          : 'Gunakan form untuk mencari kandidat yang cocok, lalu ajukan satu kandidat dan tunggu respons pihak lawan.'}
         icon={Sparkles}
         opportunities={matchingOpportunities}
         onSelect={(opportunity) => selectOpportunity(opportunity as MatchingOpportunity)}
       />
+
+      {selectedOpportunity && matchRequestStatus && (
+        <section className="rounded-xl border border-primary-100 bg-primary-50/60 p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <div className="flex items-center gap-2 text-primary-900">
+                {matchRequestStatus === 'waiting' && <Hourglass className="h-5 w-5" />}
+                {matchRequestStatus === 'accepted' && <CheckCircle2 className="h-5 w-5" />}
+                {matchRequestStatus === 'rejected' && <XCircle className="h-5 w-5" />}
+                <h2 className="text-lg font-semibold">
+                  {matchRequestStatus === 'waiting' && (lang === 'en' ? 'Matching request is waiting' : 'Request matching sedang menunggu')}
+                  {matchRequestStatus === 'accepted' && (lang === 'en' ? 'Matching accepted' : 'Matching diterima')}
+                  {matchRequestStatus === 'rejected' && (lang === 'en' ? 'Matching rejected' : 'Matching ditolak')}
+                </h2>
+              </div>
+              <p className="mt-2 text-sm text-gray-700">
+                {matchRequestStatus === 'waiting' && (lang === 'en'
+                  ? `${initiatorLabel} requested ${selectedOpportunity.title}. Waiting for the ${counterpartyLabel} to accept or reject before a transaction is created.`
+                  : `${initiatorLabel} mengajukan ${selectedOpportunity.title}. Menunggu ${counterpartyLabel} menerima atau menolak sebelum transaksi dibuat.`)}
+                {matchRequestStatus === 'accepted' && (lang === 'en'
+                  ? 'The counterparty accepted this match. The next step is creating or opening the buyer-farmer transaction.'
+                  : 'Pihak lawan menerima matching ini. Langkah berikutnya adalah membuat atau membuka transaksi buyer-farmer.')}
+                {matchRequestStatus === 'rejected' && (lang === 'en'
+                  ? 'The counterparty rejected this match. Pick another candidate from the list or run a new search.'
+                  : 'Pihak lawan menolak matching ini. Pilih kandidat lain dari daftar atau jalankan pencarian baru.')}
+              </p>
+              <div className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-3">
+                <div className="rounded-lg bg-white p-3">
+                  <span className="text-xs font-medium uppercase tracking-wide text-surface-500">
+                    {lang === 'en' ? 'Candidate' : 'Kandidat'}
+                  </span>
+                  <p className="mt-1 font-medium text-gray-900">{selectedOpportunity.id}</p>
+                </div>
+                <div className="rounded-lg bg-white p-3">
+                  <span className="text-xs font-medium uppercase tracking-wide text-surface-500">
+                    {lang === 'en' ? 'Fit score' : 'Skor cocok'}
+                  </span>
+                  <p className="mt-1 font-medium text-gray-900">{selectedOpportunity.metric}</p>
+                </div>
+                <div className="rounded-lg bg-white p-3">
+                  <span className="text-xs font-medium uppercase tracking-wide text-surface-500">
+                    {lang === 'en' ? 'Status' : 'Status'}
+                  </span>
+                  <p className="mt-1 font-medium text-gray-900">
+                    {matchRequestStatus === 'waiting'
+                      ? (lang === 'en' ? 'Waiting response' : 'Menunggu respons')
+                      : matchRequestStatus === 'accepted'
+                        ? (lang === 'en' ? 'Accepted' : 'Diterima')
+                        : (lang === 'en' ? 'Rejected' : 'Ditolak')}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex shrink-0 flex-col gap-2 sm:flex-row lg:flex-col">
+              {matchRequestStatus === 'waiting' && (
+                <>
+                  <Button type="button" size="sm" onClick={() => setMatchRequestStatus('accepted')}>
+                    {lang === 'en' ? 'Simulate accept' : 'Simulasi diterima'}
+                  </Button>
+                  <Button type="button" size="sm" variant="secondary" onClick={() => setMatchRequestStatus('rejected')}>
+                    {lang === 'en' ? 'Simulate reject' : 'Simulasi ditolak'}
+                  </Button>
+                </>
+              )}
+              {matchRequestStatus === 'accepted' && (
+                <Button type="button" size="sm" onClick={() => window.location.assign('/dashboard/transactions')}>
+                  {lang === 'en' ? 'Open transactions' : 'Buka transaksi'}
+                </Button>
+              )}
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setSelectedOpportunity(null);
+                  setMatchRequestStatus(null);
+                }}
+              >
+                {lang === 'en' ? 'Clear request' : 'Bersihkan request'}
+              </Button>
+            </div>
+          </div>
+        </section>
+      )}
 
       <div className="bg-white rounded-xl border border-surface-200">
         <button
