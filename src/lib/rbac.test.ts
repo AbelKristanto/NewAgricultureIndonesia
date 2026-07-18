@@ -11,7 +11,7 @@ import {
 import { UserRole } from '@/types/auth';
 
 describe('RBAC Permission Configuration', () => {
-  const ALL_ROLES: UserRole[] = ['farmer', 'buyer', 'supplier', 'logistics', 'finance', 'government'];
+  const ALL_ROLES: UserRole[] = ['farmer', 'buyer', 'supplier', 'logistics', 'finance', 'government', 'admin'];
 
   describe('RolePermissions interface coverage', () => {
     it('should have all 6 roles defined in ROLE_PERMISSIONS', () => {
@@ -39,23 +39,23 @@ describe('RBAC Permission Configuration', () => {
 
     it('should have correct pages', () => {
       expect(ROLE_PERMISSIONS.farmer.pages).toEqual([
-        '/dashboard', '/dashboard/farmer', '/dashboard/chat', '/dashboard/weather', '/dashboard/matching',
+        '/dashboard', '/dashboard/farmer', '/dashboard/chat', '/dashboard/weather', '/dashboard/matching', '/dashboard/farmer-operations',
       ]);
     });
 
     it('should have correct API routes', () => {
       expect(ROLE_PERMISSIONS.farmer.apiRoutes).toEqual([
-        '/api/ai/farmer', '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions',
+        '/api/ai/farmer', '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions', '/api/farmer-operations', '/api/listings', '/api/notifications', '/api/payments',
       ]);
     });
 
     it('should have correct metric cards', () => {
-      expect(ROLE_PERMISSIONS.farmer.metricCards).toEqual(['farmerAnalyses', 'chatConversations', 'weatherAnalyses']);
+      expect(ROLE_PERMISSIONS.farmer.metricCards).toEqual(['farmerAnalyses', 'transactions', 'chatConversations', 'weatherAnalyses']);
     });
 
     it('should have correct quick actions', () => {
       expect(ROLE_PERMISSIONS.farmer.quickActions).toEqual([
-        '/dashboard/farmer', '/dashboard/weather', '/dashboard/chat', '/dashboard/matching',
+        '/dashboard/farmer', '/dashboard/farmer-operations', '/dashboard/weather', '/dashboard/chat', '/dashboard/matching',
       ]);
     });
   });
@@ -73,7 +73,7 @@ describe('RBAC Permission Configuration', () => {
 
     it('should have correct API routes', () => {
       expect(ROLE_PERMISSIONS.buyer.apiRoutes).toEqual([
-        '/api/ai/buyer', '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions',
+        '/api/ai/buyer', '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions', '/api/listings', '/api/notifications', '/api/farmer-operations', '/api/payments',
       ]);
     });
 
@@ -101,7 +101,7 @@ describe('RBAC Permission Configuration', () => {
 
     it('should have correct API routes', () => {
       expect(ROLE_PERMISSIONS.government.apiRoutes).toEqual([
-        '/api/ai/farmer', '/api/ai/buyer', '/api/ai/policy', '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions', '/api/admin/simulation',
+        '/api/ai/farmer', '/api/ai/buyer', '/api/ai/policy', '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions', '/api/admin/simulation', '/api/listings', '/api/notifications', '/api/account',
       ]);
     });
 
@@ -129,7 +129,7 @@ describe('RBAC Permission Configuration', () => {
 
     it('should have correct API routes', () => {
       expect(ROLE_PERMISSIONS.supplier.apiRoutes).toEqual([
-        '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions',
+        '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions', '/api/listings', '/api/notifications',
       ]);
     });
 
@@ -157,7 +157,7 @@ describe('RBAC Permission Configuration', () => {
 
     it('should have correct API routes', () => {
       expect(ROLE_PERMISSIONS.logistics.apiRoutes).toEqual([
-        '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions',
+        '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions', '/api/listings', '/api/notifications', '/api/farmer-operations',
       ]);
     });
 
@@ -179,13 +179,13 @@ describe('RBAC Permission Configuration', () => {
 
     it('should have correct pages', () => {
       expect(ROLE_PERMISSIONS.finance.pages).toEqual([
-        '/dashboard', '/dashboard/policy', '/dashboard/transactions', '/dashboard/chat', '/dashboard/weather',
+        '/dashboard', '/dashboard/policy', '/dashboard/matching', '/dashboard/transactions', '/dashboard/chat', '/dashboard/weather',
       ]);
     });
 
     it('should have correct API routes', () => {
       expect(ROLE_PERMISSIONS.finance.apiRoutes).toEqual([
-        '/api/ai/policy', '/api/ai/chat', '/api/ai/weather', '/api/transactions',
+        '/api/ai/policy', '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions', '/api/listings', '/api/notifications', '/api/farmer-operations', '/api/account',
       ]);
     });
 
@@ -197,6 +197,25 @@ describe('RBAC Permission Configuration', () => {
       expect(ROLE_PERMISSIONS.finance.quickActions).toEqual([
         '/dashboard/policy', '/dashboard/transactions', '/dashboard/chat', '/dashboard/weather',
       ]);
+    });
+  });
+
+  describe('admin permissions', () => {
+    it('should have correct home page', () => {
+      expect(ROLE_PERMISSIONS.admin.homePage).toBe('/admin');
+    });
+
+    it('should only have the /admin page', () => {
+      expect(ROLE_PERMISSIONS.admin.pages).toEqual(['/admin']);
+    });
+
+    it('should only have the /api/admin-panel API route', () => {
+      expect(ROLE_PERMISSIONS.admin.apiRoutes).toEqual(['/api/admin-panel']);
+    });
+
+    it('should not be able to reach dashboard pages', () => {
+      expect(isPagePermitted('admin', '/dashboard')).toBe(false);
+      expect(isPagePermitted('admin', '/dashboard/farmer')).toBe(false);
     });
   });
 
@@ -238,7 +257,7 @@ describe('RBAC Permission Configuration', () => {
     });
 
     it('should return DEFAULT_PERMISSIONS for unknown role string', () => {
-      expect(getPermissions('admin' as UserRole)).toBe(DEFAULT_PERMISSIONS);
+      expect(getPermissions('superadmin' as UserRole)).toBe(DEFAULT_PERMISSIONS);
       expect(getPermissions('' as UserRole)).toBe(DEFAULT_PERMISSIONS);
     });
   });
@@ -247,10 +266,11 @@ describe('RBAC Permission Configuration', () => {
     it('should return the role when valid', () => {
       expect(normalizeUserRole('farmer')).toBe('farmer');
       expect(normalizeUserRole('government')).toBe('government');
+      expect(normalizeUserRole('admin')).toBe('admin');
     });
 
     it('should return null for invalid values', () => {
-      expect(normalizeUserRole('admin')).toBeNull();
+      expect(normalizeUserRole('superadmin')).toBeNull();
       expect(normalizeUserRole('')).toBeNull();
       expect(normalizeUserRole(null)).toBeNull();
     });
@@ -264,11 +284,12 @@ describe('RBAC Permission Configuration', () => {
       expect(getDefaultDashboardPage('logistics')).toBe('/dashboard/transactions');
       expect(getDefaultDashboardPage('finance')).toBe('/dashboard/policy');
       expect(getDefaultDashboardPage('government')).toBe('/dashboard/policy');
+      expect(getDefaultDashboardPage('admin')).toBe('/admin');
     });
 
     it('should return the generic dashboard for unknown roles', () => {
       expect(getDefaultDashboardPage(null)).toBe('/dashboard');
-      expect(getDefaultDashboardPage('admin' as UserRole)).toBe('/dashboard');
+      expect(getDefaultDashboardPage('superadmin' as UserRole)).toBe('/dashboard');
     });
   });
 
@@ -348,8 +369,8 @@ describe('RBAC Permission Configuration', () => {
       expect(isApiRoutePermitted(null, '/api/ai/farmer')).toBe(false);
     });
 
-    it('should block finance from matching API access', () => {
-      expect(isApiRoutePermitted('finance', '/api/ai/matching')).toBe(false);
+    it('should allow finance matching API access', () => {
+      expect(isApiRoutePermitted('finance', '/api/ai/matching')).toBe(true);
     });
   });
 });

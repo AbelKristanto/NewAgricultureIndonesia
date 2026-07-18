@@ -17,50 +17,58 @@ export const VALID_USER_ROLES: UserRole[] = [
   'logistics',
   'finance',
   'government',
+  'admin',
 ];
 
 export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
   farmer: {
     homePage: '/dashboard/farmer',
-    pages: ['/dashboard', '/dashboard/farmer', '/dashboard/chat', '/dashboard/weather', '/dashboard/matching'],
-    apiRoutes: ['/api/ai/farmer', '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions'],
-    metricCards: ['farmerAnalyses', 'chatConversations', 'weatherAnalyses'],
-    quickActions: ['/dashboard/farmer', '/dashboard/weather', '/dashboard/chat', '/dashboard/matching'],
+    pages: ['/dashboard', '/dashboard/farmer', '/dashboard/chat', '/dashboard/weather', '/dashboard/matching', '/dashboard/farmer-operations'],
+    apiRoutes: ['/api/ai/farmer', '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions', '/api/farmer-operations', '/api/listings', '/api/notifications', '/api/payments'],
+    metricCards: ['farmerAnalyses', 'transactions', 'chatConversations', 'weatherAnalyses'],
+    quickActions: ['/dashboard/farmer', '/dashboard/farmer-operations', '/dashboard/weather', '/dashboard/chat', '/dashboard/matching'],
   },
   buyer: {
     homePage: '/dashboard/buyer',
     pages: ['/dashboard', '/dashboard/buyer', '/dashboard/chat', '/dashboard/matching', '/dashboard/transactions', '/dashboard/weather'],
-    apiRoutes: ['/api/ai/buyer', '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions'],
+    apiRoutes: ['/api/ai/buyer', '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions', '/api/listings', '/api/notifications', '/api/farmer-operations', '/api/payments'],
     metricCards: ['buyerAnalyses', 'transactions', 'matchingAnalyses', 'chatConversations'],
     quickActions: ['/dashboard/buyer', '/dashboard/matching', '/dashboard/chat', '/dashboard/transactions'],
   },
   government: {
     homePage: '/dashboard/policy',
     pages: ['/dashboard', '/dashboard/farmer', '/dashboard/buyer', '/dashboard/policy', '/dashboard/chat', '/dashboard/matching', '/dashboard/weather', '/dashboard/transactions', '/dashboard/simulation'],
-    apiRoutes: ['/api/ai/farmer', '/api/ai/buyer', '/api/ai/policy', '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions', '/api/admin/simulation'],
+    apiRoutes: ['/api/ai/farmer', '/api/ai/buyer', '/api/ai/policy', '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions', '/api/admin/simulation', '/api/listings', '/api/notifications', '/api/account'],
     metricCards: ['policyAnalyses', 'farmerAnalyses', 'buyerAnalyses', 'transactions'],
     quickActions: ['/dashboard/policy', '/dashboard/farmer', '/dashboard/buyer', '/dashboard/chat'],
   },
   supplier: {
     homePage: '/dashboard/matching',
     pages: ['/dashboard', '/dashboard/matching', '/dashboard/transactions', '/dashboard/chat', '/dashboard/weather'],
-    apiRoutes: ['/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions'],
+    apiRoutes: ['/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions', '/api/listings', '/api/notifications'],
     metricCards: ['matchingAnalyses', 'transactions', 'chatConversations'],
     quickActions: ['/dashboard/matching', '/dashboard/transactions', '/dashboard/chat', '/dashboard/weather'],
   },
   logistics: {
     homePage: '/dashboard/transactions',
     pages: ['/dashboard', '/dashboard/matching', '/dashboard/transactions', '/dashboard/chat', '/dashboard/weather'],
-    apiRoutes: ['/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions'],
+    apiRoutes: ['/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions', '/api/listings', '/api/notifications', '/api/farmer-operations'],
     metricCards: ['transactions', 'matchingAnalyses', 'chatConversations'],
     quickActions: ['/dashboard/transactions', '/dashboard/matching', '/dashboard/chat', '/dashboard/weather'],
   },
   finance: {
     homePage: '/dashboard/policy',
-    pages: ['/dashboard', '/dashboard/policy', '/dashboard/transactions', '/dashboard/chat', '/dashboard/weather'],
-    apiRoutes: ['/api/ai/policy', '/api/ai/chat', '/api/ai/weather', '/api/transactions'],
+    pages: ['/dashboard', '/dashboard/policy', '/dashboard/matching', '/dashboard/transactions', '/dashboard/chat', '/dashboard/weather'],
+    apiRoutes: ['/api/ai/policy', '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions', '/api/listings', '/api/notifications', '/api/farmer-operations', '/api/account'],
     metricCards: ['policyAnalyses', 'transactions', 'chatConversations'],
     quickActions: ['/dashboard/policy', '/dashboard/transactions', '/dashboard/chat', '/dashboard/weather'],
+  },
+  admin: {
+    homePage: '/admin',
+    pages: ['/admin'],
+    apiRoutes: ['/api/admin-panel'],
+    metricCards: [],
+    quickActions: [],
   },
 };
 

@@ -109,11 +109,11 @@ describe('useDashboardData - cache integration', () => {
 });
 
 describe('useDashboardData - role-based metric selection', () => {
-  it('farmer role fetches farmerAnalyses, chatConversations, weatherAnalyses', async () => {
+  it('farmer role fetches farmerAnalyses, transactions, chatConversations, weatherAnalyses', async () => {
     // Import getPermissions to verify metric card selection
     const { getPermissions } = await import('@/lib/rbac');
     const perms = getPermissions('farmer');
-    expect(perms.metricCards).toEqual(['farmerAnalyses', 'chatConversations', 'weatherAnalyses']);
+    expect(perms.metricCards).toEqual(['farmerAnalyses', 'transactions', 'chatConversations', 'weatherAnalyses']);
   });
 
   it('buyer role fetches buyerAnalyses, transactions, matchingAnalyses, chatConversations', async () => {

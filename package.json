@@ -13,7 +13,10 @@
     "simulate:cleanup": "node --env-file=.env.local scripts/simulate.mjs --cleanup",
     "seed:users": "node --env-file=.env.local scripts/seed-users.mjs",
     "seed:transactions": "node --env-file=.env.local scripts/seed-demo-transactions.mjs",
-    "seed:demo-history": "node --env-file=.env.local scripts/seed-demo-history.mjs"
+    "seed:demo-history": "node --env-file=.env.local scripts/seed-demo-history.mjs",
+    "seed:farmer-operations": "node --env-file=.env.local scripts/seed-farmer-operations.mjs",
+    "seed:listings": "node --env-file=.env.local scripts/seed-listings.mjs",
+    "seed:admin": "node --env-file=.env.local scripts/seed-admin.mjs"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

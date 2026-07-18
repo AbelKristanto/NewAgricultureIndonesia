@@ -6,6 +6,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import Logo from '@/components/brand/Logo';
 import LanguageToggle from '@/components/shared/LanguageToggle';
 import LoadingOverlay from '@/components/shared/LoadingOverlay';
+import NotificationBell from '@/components/layout/NotificationBell';
 import Spinner from '@/components/ui/Spinner';
 import { LogOut, User } from 'lucide-react';
 
@@ -38,6 +39,7 @@ export default function Topbar() {
 
           {user && (
             <div className="flex items-center gap-3">
+              <NotificationBell />
               <div className="flex items-center gap-2">
                 <div className="h-8 w-8 bg-primary-100 rounded-full flex items-center justify-center">
                   <User className="h-4 w-4 text-primary-700" />

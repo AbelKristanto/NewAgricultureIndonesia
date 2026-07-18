@@ -5,6 +5,8 @@ import { buildWeatherPrompt } from '@/lib/prompts/weather-prompt';
 import { WeatherInput, WeatherAnalysis } from '@/types/weather';
 import { saveAnalysis } from '@/lib/db/analyses';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { getBmkgForecast, summarizeForPrompt, BmkgForecast } from '@/lib/bmkg';
+import { BMKG_REGION_MAP } from '@/lib/bmkg-regions';
 import {
   getRequestContext,
   createUnauthorizedResponse,
@@ -43,7 +45,19 @@ export async function POST(request: Request) {
   try {
     const body: WeatherInput = await request.json();
     const systemPrompt = getSystemPrompt(body.lang);
-    const userPrompt = buildWeatherPrompt(body);
+
+    let bmkg: BmkgForecast | null = null;
+    const region = BMKG_REGION_MAP[body.regions[0]];
+    if (region) {
+      try {
+        bmkg = await getBmkgForecast(region.adm4);
+      } catch (bmkgError) {
+        // BMKG being unreachable/invalid must never break the AI analysis.
+        console.error('BMKG fetch error:', bmkgError);
+      }
+    }
+
+    const userPrompt = buildWeatherPrompt(body, bmkg ? summarizeForPrompt(bmkg) : undefined);
 
     let responseText: string;
     try {
@@ -71,7 +85,7 @@ export async function POST(request: Request) {
       console.error('Failed to save weather analysis:', dbError);
     }
 
-    return NextResponse.json({ success: true, data: resultData });
+    return NextResponse.json({ success: true, data: resultData, bmkg });
   } catch (error) {
     console.error('Weather AI error:', error);
     return NextResponse.json(

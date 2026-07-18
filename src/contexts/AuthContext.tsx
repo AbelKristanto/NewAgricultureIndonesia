@@ -4,7 +4,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { User } from '@/types/auth';
+import { User, UserRole } from '@/types/auth';
 import { buildAuthenticatedUser, ProfileSnapshot } from '@/lib/auth-user';
 import { getDefaultDashboardPage } from '@/lib/rbac';
 
@@ -12,6 +12,7 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; message?: string; redirectTo?: string }>;
+  signup: (email: string, password: string, username: string, role: UserRole, institutionName?: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => Promise<void>;
 }
 
@@ -24,7 +25,7 @@ async function getProfileSnapshot(
   try {
     const { data: profile, error } = await supabase
       .from('profiles')
-      .select('username, role')
+      .select('username, role, status, institution_name, verification_document_path')
       .eq('id', userId)
       .maybeSingle(); // Use maybeSingle to avoid error when no rows found
 
@@ -186,14 +187,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!profile) {
         console.log('[AuthContext] No profile found, creating...');
         try {
+          const selfHealRole = authUser.user_metadata?.role || 'farmer';
+          const selfHealNeedsVerification = selfHealRole === 'finance' || selfHealRole === 'government';
           const { data: newProfile, error: createError } = await supabase
             .from('profiles')
             .insert({
               id: authUser.id,
               username: authUser.user_metadata?.username || authUser.email?.split('@')[0] || 'User',
-              role: authUser.user_metadata?.role || 'farmer'
+              role: selfHealRole,
+              status: selfHealNeedsVerification ? 'pending' : 'approved',
+              institution_name: authUser.user_metadata?.institution_name ?? null,
             })
-            .select('username, role')
+            .select('username, role, status, institution_name, verification_document_path')
             .single();
 
           if (!createError && newProfile) {
@@ -216,13 +221,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       router.refresh();
       return {
         success: true,
-        redirectTo: getDefaultDashboardPage(nextUser.role),
+        redirectTo: nextUser.status === 'pending' || nextUser.status === 'rejected'
+          ? '/pending-verification'
+          : getDefaultDashboardPage(nextUser.role),
       };
     } catch (err) {
       console.error('[AuthContext] Login exception:', err);
       return { success: false, message: err instanceof Error ? err.message : 'Network error' };
     }
   }, [router]);
+
+  const signup = useCallback(async (email: string, password: string, username: string, role: UserRole, institutionName?: string) => {
+    const supabase = supabaseRef.current;
+
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { username, role, institution_name: institutionName ?? null },
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) {
+        if (error.message?.toLowerCase().includes('already registered')) {
+          return { success: false, message: 'ALREADY_REGISTERED' };
+        }
+        return { success: false, message: error.message };
+      }
+
+      if (!data.user) {
+        return { success: false, message: 'Signup failed. No account created.' };
+      }
+
+      return { success: true };
+    } catch (err) {
+      return { success: false, message: err instanceof Error ? err.message : 'Network error' };
+    }
+  }, []);
 
   const logout = useCallback(async () => {
     const supabase = supabaseRef.current;
@@ -244,7 +281,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [router]);
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, login, signup, logout }}>
       {children}
     </AuthContext.Provider>
   );

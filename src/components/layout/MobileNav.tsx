@@ -7,7 +7,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useRole } from '@/contexts/RoleContext';
 import { getPermissions } from '@/lib/rbac';
 import Logo from '@/components/brand/Logo';
-import { Home, Wheat, ShoppingCart, Building2, MessageSquare, Handshake, CloudSun, FileSignature, FlaskConical, Menu, X } from 'lucide-react';
+import { Home, Wheat, ShoppingCart, Building2, MessageSquare, Handshake, CloudSun, FileSignature, FlaskConical, Menu, X, Route } from 'lucide-react';
 import clsx from 'clsx';
 
 const primaryNav = [
@@ -20,6 +20,7 @@ const primaryNav = [
 
 const secondaryNav = [
   { href: '/dashboard/matching', icon: Handshake, labelKey: 'nav.matching' },
+  { href: '/dashboard/farmer-operations', icon: Route, labelKey: 'nav.farmerOperations' },
   { href: '/dashboard/weather', icon: CloudSun, labelKey: 'nav.weather' },
   { href: '/dashboard/transactions', icon: FileSignature, labelKey: 'nav.transactions' },
   { href: '/dashboard/simulation', icon: FlaskConical, labelKey: 'nav.simulation' },

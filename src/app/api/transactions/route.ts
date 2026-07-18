@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createTransaction, getUserTransactions } from '@/lib/db/transactions';
+import { getSupplyListingById, getDemandListingById, markListingsMatched } from '@/lib/db/listings';
+import { createNotification } from '@/lib/db/notifications';
+import { buildMatchNotification } from '@/lib/notification-copy';
+import { COMMODITIES } from '@/lib/constants';
 import { CreateTransactionInput } from '@/types/transaction';
 import {
   appendNegotiationEntry,
@@ -46,7 +50,43 @@ export async function POST(request: Request) {
 
   try {
     const supabase = createAdminClient();
-    const body: CreateTransactionInput = await request.json();
+    const body: CreateTransactionInput & {
+      supplyListingId?: string;
+      demandListingId?: string;
+    } = await request.json();
+
+    let farmerId = body.farmerId;
+    let matchedSupplyListing: Awaited<ReturnType<typeof getSupplyListingById>> = null;
+
+    if (body.supplyListingId || body.demandListingId) {
+      if (!body.supplyListingId || !body.demandListingId) {
+        return NextResponse.json(
+          { success: false, error: 'Both supplyListingId and demandListingId are required to link a match' },
+          { status: 400 }
+        );
+      }
+
+      const [supplyListing, demandListing] = await Promise.all([
+        getSupplyListingById(supabase, body.supplyListingId),
+        getDemandListingById(supabase, body.demandListingId),
+      ]);
+
+      if (!supplyListing || !demandListing) {
+        return NextResponse.json({ success: false, error: 'Listing not found' }, { status: 404 });
+      }
+      if (demandListing.buyer_id !== ctx.userId) {
+        return createForbiddenResponse('Only the owner of the demand listing can create this transaction');
+      }
+      if (supplyListing.status !== 'active' || demandListing.status !== 'active') {
+        return NextResponse.json(
+          { success: false, error: 'One of the listings is no longer active' },
+          { status: 409 }
+        );
+      }
+
+      farmerId = supplyListing.farmer_id;
+      matchedSupplyListing = supplyListing;
+    }
 
     const transaction = await createTransaction(supabase, ctx.userId, {
       commodity: body.commodity,
@@ -58,7 +98,7 @@ export async function POST(request: Request) {
       delivery_city: body.deliveryCity,
       start_date: body.startDate,
       end_date: body.endDate,
-      farmer_id: body.farmerId,
+      farmer_id: farmerId,
       terms: appendNegotiationEntry(
         body.terms ?? null,
         createNegotiationEntry({
@@ -73,6 +113,27 @@ export async function POST(request: Request) {
         })
       ),
     });
+
+    if (body.supplyListingId && body.demandListingId) {
+      await markListingsMatched(supabase, body.supplyListingId, body.demandListingId, transaction.id);
+
+      if (matchedSupplyListing) {
+        try {
+          const commodityLabel = COMMODITIES.find((c) => c.value === transaction.commodity)?.labelId || transaction.commodity;
+          const copy = buildMatchNotification(commodityLabel);
+          await createNotification(supabase, {
+            userId: matchedSupplyListing.farmer_id,
+            type: copy.type,
+            title: copy.title,
+            body: copy.body,
+            link: '/dashboard/matching',
+            relatedTransactionId: transaction.id,
+          });
+        } catch (notificationError) {
+          console.error('Failed to create match notification:', notificationError);
+        }
+      }
+    }
 
     return NextResponse.json({ success: true, data: transaction }, { status: 201 });
   } catch (error) {

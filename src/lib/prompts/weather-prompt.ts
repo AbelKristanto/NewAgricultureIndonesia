@@ -1,6 +1,6 @@
 import { WeatherInput } from '@/types/weather';
 
-export function buildWeatherPrompt(input: WeatherInput): string {
+export function buildWeatherPrompt(input: WeatherInput, realForecastSummary?: string): string {
   return `Analyze the following weather scenario and its impact on agricultural production in Indonesia.
 
 WEATHER SCENARIO:
@@ -9,7 +9,7 @@ WEATHER SCENARIO:
 - Weather Event: ${input.scenario}
 - Season: ${input.season}
 - Additional Notes: ${input.notes || 'None'}
-
+${realForecastSummary ? `\n${realForecastSummary}\n\nGround your analysis against this real forecast. If the selected weather event (hypothetical) conflicts with what BMKG is actually forecasting right now, call that out explicitly in impactAssessment.\n` : ''}
 Respond ONLY with valid JSON matching this exact schema (no markdown, no explanation outside JSON):
 {
   "impactAssessment": "string - detailed analysis of how this weather event affects the specified crops in the specified regions, including expected yield reduction percentages, crop damage types, and historical precedents",

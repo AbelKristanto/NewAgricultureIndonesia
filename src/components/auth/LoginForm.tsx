@@ -10,12 +10,11 @@ import {
   Handshake,
   Landmark,
   MessageSquare,
-  Package,
   ShoppingCart,
   Truck,
   Wheat,
-  Building2,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { USER_ROLES } from '@/lib/constants';
@@ -24,15 +23,7 @@ import Input from '@/components/ui/Input';
 import LanguageToggle from '@/components/shared/LanguageToggle';
 import LoadingOverlay from '@/components/shared/LoadingOverlay';
 import { UserRole } from '@/types/auth';
-
-const ROLE_ICONS: Record<UserRole, LucideIcon> = {
-  farmer: Wheat,
-  buyer: ShoppingCart,
-  supplier: Package,
-  logistics: Truck,
-  finance: Landmark,
-  government: Building2,
-};
+import { ROLE_ICONS } from '@/components/auth/role-icons';
 
 const CAPABILITIES: Array<{
   icon: LucideIcon;
@@ -116,7 +107,14 @@ const CAPABILITIES: Array<{
   },
 ];
 
-export default function LoginForm() {
+const CALLBACK_ERROR_MESSAGES: Record<string, { en: string; id: string }> = {
+  confirmation_failed: {
+    en: 'That confirmation link is invalid or has expired. Please sign up again to get a new one.',
+    id: 'Link konfirmasi tidak valid atau sudah kedaluwarsa. Silakan daftar ulang untuk mendapatkan link baru.',
+  },
+};
+
+export default function LoginForm({ initialError }: { initialError?: string }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -125,6 +123,11 @@ export default function LoginForm() {
   const { login } = useAuth();
   const { t, lang } = useLanguage();
   const router = useRouter();
+
+  const callbackErrorMessage = initialError
+    ? CALLBACK_ERROR_MESSAGES[initialError]?.[lang === 'en' ? 'en' : 'id']
+    : null;
+  const displayedError = error || callbackErrorMessage;
 
   const applyDemoRole = (role: UserRole) => {
     setSelectedRole(role);
@@ -244,9 +247,9 @@ export default function LoginForm() {
               </div>
             </div>
 
-            {error && (
+            {displayedError && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                {error}
+                {displayedError}
               </div>
             )}
 
@@ -259,6 +262,13 @@ export default function LoginForm() {
             >
               {t('login.submit')}
             </Button>
+
+            <p className="text-center text-sm text-surface-500">
+              {t('login.noAccount')}{' '}
+              <Link href="/signup" className="font-medium text-primary-700 hover:underline">
+                {t('login.signupLink')}
+              </Link>
+            </p>
           </form>
         </div>
       </div>

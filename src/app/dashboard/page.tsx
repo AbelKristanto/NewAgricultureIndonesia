@@ -17,6 +17,9 @@ import {
   FileSignature,
   FileText,
   RefreshCw,
+  Route,
+  CreditCard,
+  MapPinned,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -97,6 +100,7 @@ const QUICK_ACTION_CONFIG: Record<
   '/dashboard/matching': { labelKey: 'dashboard.actions.supplyMatching', icon: Handshake },
   '/dashboard/weather': { labelKey: 'dashboard.actions.weatherIntelligence', icon: CloudSun },
   '/dashboard/transactions': { labelKey: 'dashboard.actions.transactions', icon: FileSignature },
+  '/dashboard/farmer-operations': { labelKey: 'dashboard.actions.farmerOperations', icon: Route },
 };
 
 const DASHBOARD_CAPABILITY_CONFIG: Record<
@@ -126,6 +130,12 @@ const DASHBOARD_CAPABILITY_CONFIG: Record<
     icon: Handshake,
     descriptionEn: 'Connect farmer supply with buyer demand, including capacity, logistics, timeline, and price fit.',
     descriptionId: 'Hubungkan pasokan petani dengan kebutuhan pembeli, termasuk kapasitas, logistik, timeline, dan harga.',
+  },
+  '/dashboard/farmer-operations': {
+    labelKey: 'nav.farmerOperations',
+    icon: Route,
+    descriptionEn: 'Track financing access, logistics pickup, active contracts, goods, payment, and delivery map.',
+    descriptionId: 'Pantau akses pembiayaan, pickup logistik, kontrak aktif, barang, pembayaran, dan peta delivery.',
   },
   '/dashboard/weather': {
     labelKey: 'nav.weather',
@@ -295,6 +305,57 @@ export default function DashboardPage() {
               );
             })}
           </div>
+        </div>
+      )}
+
+      {role === 'farmer' && (
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">
+          {[
+            {
+              title: lang === 'en' ? 'Active contract deal' : 'Kontrak deal aktif',
+              value: '3',
+              description: lang === 'en' ? 'Draft, proposed, and accepted demo contracts.' : 'Kontrak demo draft, proposed, dan accepted.',
+              icon: FileSignature,
+            },
+            {
+              title: lang === 'en' ? 'Goods monitoring' : 'Pemantauan barang',
+              value: '68%',
+              description: lang === 'en' ? 'Harvest and quality check progress.' : 'Progress panen dan quality check.',
+              icon: Wheat,
+            },
+            {
+              title: lang === 'en' ? 'Payment monitoring' : 'Pemantauan pembayaran',
+              value: '40%',
+              description: lang === 'en' ? 'Down payment and settlement milestones.' : 'Milestone DP dan pelunasan.',
+              icon: CreditCard,
+            },
+            {
+              title: lang === 'en' ? 'Live delivery map' : 'Peta delivery real time',
+              value: '2',
+              description: lang === 'en' ? 'Active pickup and in-transit logistics plans.' : 'Rencana pickup dan pengiriman aktif.',
+              icon: MapPinned,
+            },
+          ].map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.title}
+                href="/dashboard/farmer-operations"
+                className="rounded-xl border border-primary-100 bg-primary-50/50 p-4 transition-colors hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">{item.title}</p>
+                    <p className="mt-2 text-2xl font-bold text-primary-800">{item.value}</p>
+                  </div>
+                  <div className="rounded-lg bg-white p-2 text-primary-700">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                </div>
+                <p className="mt-3 text-xs leading-5 text-surface-600">{item.description}</p>
+              </Link>
+            );
+          })}
         </div>
       )}
 

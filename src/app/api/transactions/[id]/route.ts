@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getTransactionById, updateTransaction } from '@/lib/db/transactions';
+import { createNotification } from '@/lib/db/notifications';
+import { buildNegotiationNotification } from '@/lib/notification-copy';
+import { COMMODITIES } from '@/lib/constants';
 import { TransactionStatus } from '@/types/transaction';
 import {
   appendNegotiationEntry,
@@ -254,6 +257,32 @@ export async function PATCH(
     }
 
     const updated = await updateTransaction(supabase, id, allowedFields);
+
+    try {
+      const counterpartyParty = actorParty === 'buyer' ? 'farmer' : 'buyer';
+      const counterpartyId = counterpartyParty === 'farmer' ? updated.farmer_id : updated.buyer_id;
+
+      if (counterpartyId) {
+        const negotiationIntent = body.intent ?? (body.status ? 'status_update' : undefined);
+        if (negotiationIntent) {
+          const commodityLabel = COMMODITIES.find((c) => c.value === updated.commodity)?.labelId || updated.commodity;
+          const copy = buildNegotiationNotification(negotiationIntent, actorParty, commodityLabel, updated.status);
+          const link = counterpartyParty === 'farmer' ? '/dashboard/matching' : `/dashboard/transactions?tx=${id}`;
+
+          await createNotification(supabase, {
+            userId: counterpartyId,
+            type: copy.type,
+            title: copy.title,
+            body: copy.body,
+            link,
+            relatedTransactionId: id,
+          });
+        }
+      }
+    } catch (notificationError) {
+      console.error('Failed to create transaction notification:', notificationError);
+    }
+
     return NextResponse.json({ success: true, data: updated });
   } catch (error) {
     console.error('Transaction update error:', error);

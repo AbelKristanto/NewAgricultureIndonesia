@@ -33,6 +33,6 @@ describe('auth-user helpers', () => {
 
   it('falls back to auth metadata role, then farmer for invalid or missing roles', () => {
     expect(resolveUserRole(null, 'supplier')).toBe('supplier');
-    expect(resolveUserRole('admin', 'owner')).toBe('farmer');
+    expect(resolveUserRole('superadmin', 'owner')).toBe('farmer');
   });
 });

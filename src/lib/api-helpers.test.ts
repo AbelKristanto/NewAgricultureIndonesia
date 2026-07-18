@@ -53,7 +53,7 @@ describe('API Helpers', () => {
     it('should return null for invalid role value', () => {
       const request = createRequest({
         'x-user-id': 'user-123',
-        'x-user-role': 'admin',
+        'x-user-role': 'superadmin',
       });
 
       const result = getRequestContext(request);
@@ -111,7 +111,7 @@ describe('API Helpers', () => {
 
     it('should block roles from APIs outside their permissions', () => {
       expect(isRequestPermittedForApi({ userId: 'farmer-1', userRole: 'farmer' }, '/api/ai/buyer')).toBe(false);
-      expect(isRequestPermittedForApi({ userId: 'finance-1', userRole: 'finance' }, '/api/ai/matching')).toBe(false);
+      expect(isRequestPermittedForApi({ userId: 'finance-1', userRole: 'finance' }, '/api/admin/simulation')).toBe(false);
     });
   });
 

@@ -6,9 +6,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase/client';
 import { PolicyQuery } from '@/types/policy';
 import { INDONESIAN_PROVINCES, COMMODITIES, ANALYSIS_TYPES, TIME_HORIZONS } from '@/lib/constants';
+import { FarmerFinancingOpportunity } from '@/types/farmer-operations';
+import { Transaction } from '@/types/transaction';
 import Button from '@/components/ui/Button';
+import Input from '@/components/ui/Input';
+import Textarea from '@/components/ui/Textarea';
 import Select from '@/components/ui/Select';
 import Spinner from '@/components/ui/Spinner';
+import Badge from '@/components/ui/Badge';
 import ResultSection from '@/components/shared/ResultSection';
 import FormInfoButton from '@/components/shared/FormInfoButton';
 import ConnectionFlowBanner from '@/components/shared/ConnectionFlowBanner';
@@ -32,13 +37,13 @@ interface HistoryItem {
   created_at: string;
 }
 
-interface FinanceOpportunity extends CapabilityOpportunity {
-  regions: string[];
-  commodities: string[];
-  analysisTypes: string[];
-  timeHorizon: string;
-  result: PolicyResult;
-}
+const FINANCING_STATUS_LABEL: Record<string, { en: string; id: string }> = {
+  available: { en: 'Available', id: 'Tersedia' },
+  requested: { en: 'Requested', id: 'Diajukan' },
+  reviewing: { en: 'Reviewing', id: 'Ditinjau' },
+  approved: { en: 'Approved', id: 'Disetujui' },
+  rejected: { en: 'Rejected', id: 'Ditolak' },
+};
 
 export default function PolicyPage() {
   const { t, lang } = useLanguage();
@@ -57,6 +62,111 @@ export default function PolicyPage() {
   const [selectedAnalysis, setSelectedAnalysis] = useState<string[]>([]);
   const [timeHorizon, setTimeHorizon] = useState('current-season');
   const isFinanceRole = user?.role === 'finance';
+
+  const [financeableTransactions, setFinanceableTransactions] = useState<Transaction[]>([]);
+  const [myOffers, setMyOffers] = useState<FarmerFinancingOpportunity[]>([]);
+  const [financingLoading, setFinancingLoading] = useState(false);
+  const [financingError, setFinancingError] = useState('');
+  const [financingSaving, setFinancingSaving] = useState(false);
+  const [offerTransaction, setOfferTransaction] = useState<Transaction | null>(null);
+  const [offerForm, setOfferForm] = useState({
+    institutionName: '',
+    productName: '',
+    amountMin: '',
+    amountMax: '',
+    interestRate: '',
+    tenorMonths: '',
+    notes: '',
+  });
+
+  const loadFinancingData = async () => {
+    setFinancingLoading(true);
+    try {
+      const [browseRes, mineRes] = await Promise.all([
+        fetch('/api/farmer-operations/financing?scope=browse'),
+        fetch('/api/farmer-operations/financing?scope=mine'),
+      ]);
+      const browseData = await browseRes.json();
+      const mineData = await mineRes.json();
+      if (!isMounted.current) return;
+      if (browseData.success) setFinanceableTransactions(browseData.data);
+      if (mineData.success) setMyOffers(mineData.data);
+    } catch {
+      // Non-critical panel — the AI policy tool below still works either way.
+    } finally {
+      if (isMounted.current) setFinancingLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isFinanceRole) return;
+    loadFinancingData();
+  }, [isFinanceRole]);
+
+  const handleCreateOffer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!offerTransaction) return;
+    setFinancingSaving(true);
+    setFinancingError('');
+    try {
+      const res = await fetch('/api/farmer-operations/financing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transactionId: offerTransaction.id,
+          institutionName: offerForm.institutionName,
+          productName: offerForm.productName,
+          amountMin: Number(offerForm.amountMin),
+          amountMax: Number(offerForm.amountMax),
+          interestRate: offerForm.interestRate || undefined,
+          tenorMonths: offerForm.tenorMonths ? Number(offerForm.tenorMonths) : undefined,
+          notes: offerForm.notes || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!isMounted.current) return;
+      if (data.success) {
+        setOfferTransaction(null);
+        setOfferForm({ institutionName: '', productName: '', amountMin: '', amountMax: '', interestRate: '', tenorMonths: '', notes: '' });
+        await loadFinancingData();
+      } else {
+        setFinancingError(data.error || t('common.error'));
+      }
+    } catch {
+      if (isMounted.current) setFinancingError(t('common.error'));
+    } finally {
+      if (isMounted.current) setFinancingSaving(false);
+    }
+  };
+
+  const handleOfferIntent = async (id: string, intent: 'review' | 'approve' | 'reject') => {
+    setFinancingSaving(true);
+    setFinancingError('');
+    try {
+      const res = await fetch(`/api/farmer-operations/financing/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ intent }),
+      });
+      const data = await res.json();
+      if (!isMounted.current) return;
+      if (data.success) {
+        await loadFinancingData();
+      } else {
+        setFinancingError(data.error || t('common.error'));
+      }
+    } catch {
+      if (isMounted.current) setFinancingError(t('common.error'));
+    } finally {
+      if (isMounted.current) setFinancingSaving(false);
+    }
+  };
+
+  const getFinancingStatusLabel = (status: string) =>
+    FINANCING_STATUS_LABEL[status]?.[lang === 'en' ? 'en' : 'id'] || status;
+
+  const getCommodityLabelShort = (value: string) =>
+    COMMODITIES.find((c) => c.value === value)?.[lang === 'en' ? 'labelEn' : 'labelId'] || value;
 
   const toggleSelection = (arr: string[], value: string, setter: (v: string[]) => void) => {
     setter(arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value]);
@@ -154,64 +264,30 @@ export default function PolicyPage() {
     setResults(item.result as unknown as PolicyResult);
   };
 
-  const financeOpportunities: FinanceOpportunity[] = [
-    {
-      id: 'finance-rice-subang-jakarta-2026',
-      title: lang === 'en' ? 'Working capital: Subang rice farmer' : 'Modal kerja: petani beras Subang',
-      subtitle: lang === 'en' ? 'Linked to Buyer Demo Jakarta PO' : 'Terkait PO Buyer Demo Jakarta',
-      leftLabel: lang === 'en' ? 'Petani Subang' : 'Petani Subang',
-      rightLabel: lang === 'en' ? 'Financial institution' : 'Lembaga keuangan',
-      metric: 'IDR 180M',
-      status: lang === 'en' ? 'Assessment ready' : 'Siap assessment',
-      insight: lang === 'en'
-        ? 'Buyer demand and transaction value can support short-term working capital assessment.'
-        : 'Demand buyer dan nilai transaksi bisa menjadi dasar assessment modal kerja jangka pendek.',
-      actionLabel: lang === 'en' ? 'Assess' : 'Assessment',
-      regions: ['jawa-barat'],
-      commodities: ['rice'],
-      analysisTypes: ['production-capacity', 'demand-supply'],
-      timeHorizon: '1-year',
-      result: {
-        productionOverview: 'Petani Demo Subang punya rencana pasokan beras 25 ton untuk Buyer Demo Jakarta dengan irigasi dan jadwal panen yang jelas.',
-        supplyDemandAnalysis: 'Demand buyer senilai acuan IDR 295.000.000 mendukung assessment modal kerja sekitar IDR 180.000.000.',
-        riskZones: 'Risiko utama berada pada cuaca basah, jadwal panen, dan keterlambatan rute Subang - Pantura - Jakarta Utara.',
-        policyRecommendations: 'Lembaga keuangan dapat memakai transaksi buyer-farmer sebagai dasar invoice/PO financing bertahap.',
-        priorityActions: '1. Validasi transaksi. 2. Cek histori produksi petani. 3. Tetapkan pencairan bertahap mengikuti milestone panen dan pengiriman.',
-      },
-    },
-    {
-      id: 'finance-chili-garut-bandung-2026',
-      title: lang === 'en' ? 'Harvest bridge: Garut chili farmer' : 'Talangan panen: petani cabai Garut',
-      subtitle: lang === 'en' ? 'Fresh delivery risk needs buffer' : 'Risiko kirim segar perlu buffer',
-      leftLabel: lang === 'en' ? 'Petani Garut' : 'Petani Garut',
-      rightLabel: lang === 'en' ? 'Financial institution' : 'Lembaga keuangan',
-      metric: 'IDR 52M',
-      status: lang === 'en' ? 'Medium risk' : 'Risiko sedang',
-      insight: lang === 'en'
-        ? 'Chili demand is strong, but freshness and weather risk should affect financing terms.'
-        : 'Demand cabai kuat, tetapi risiko kesegaran dan cuaca perlu memengaruhi tenor pembiayaan.',
-      actionLabel: lang === 'en' ? 'Assess' : 'Assessment',
-      regions: ['jawa-barat'],
-      commodities: ['chili'],
-      analysisTypes: ['production-capacity', 'food-supply-gaps', 'demand-supply'],
-      timeHorizon: 'current-season',
-      result: {
-        productionOverview: 'Petani Demo Garut punya peluang memasok 800 kg cabai ke Buyer Demo Bandung.',
-        supplyDemandAnalysis: 'Volume kecil dan nilai cepat cair cocok untuk pembiayaan jangka pendek berbasis pengiriman.',
-        riskZones: 'Risiko tinggi pada fluktuasi harga cabai, cuaca, dan keterlambatan rute Garut - Nagreg - Bandung.',
-        policyRecommendations: 'Gunakan plafon lebih kecil dengan pencairan setelah quality check dan bukti pickup logistics.',
-        priorityActions: '1. Cek kontrak buyer. 2. Wajibkan bukti pickup. 3. Tambahkan buffer harga dan klausa kualitas.',
-      },
-    },
-  ];
+  const transactionOpportunities: CapabilityOpportunity[] = financeableTransactions.map((tx) => ({
+    id: tx.id,
+    title: `${getCommodityLabelShort(tx.commodity)} - ${tx.volume} ${tx.volume_unit}`,
+    subtitle: `${tx.delivery_city ? tx.delivery_city + ', ' : ''}${tx.delivery_province}`,
+    leftLabel: lang === 'en' ? 'Farmer' : 'Petani',
+    rightLabel: lang === 'en' ? 'Buyer' : 'Pembeli',
+    metric: tx.total_value
+      ? `IDR ${tx.total_value.toLocaleString('id-ID')}`
+      : tx.price_per_unit
+        ? `IDR ${tx.price_per_unit.toLocaleString('id-ID')}/unit`
+        : '-',
+    status: tx.status,
+    insight: lang === 'en'
+      ? `Transaction status: ${tx.status}. Created ${new Date(tx.created_at).toLocaleDateString()}.`
+      : `Status transaksi: ${tx.status}. Dibuat ${new Date(tx.created_at).toLocaleDateString('id-ID')}.`,
+    actionLabel: lang === 'en' ? 'Create offer' : 'Buat penawaran',
+  }));
 
-  const selectFinanceOpportunity = (opportunity: FinanceOpportunity) => {
-    setSelectedRegions(opportunity.regions);
-    setSelectedCommodities(opportunity.commodities);
-    setSelectedAnalysis(opportunity.analysisTypes);
-    setTimeHorizon(opportunity.timeHorizon);
-    setResults(opportunity.result);
-    setError('');
+  const selectTransactionForOffer = (opportunity: CapabilityOpportunity) => {
+    const tx = financeableTransactions.find((t) => t.id === opportunity.id);
+    if (!tx) return;
+    setOfferTransaction(tx);
+    setOfferForm({ institutionName: '', productName: '', amountMin: '', amountMax: '', interestRate: '', tenorMonths: '', notes: '' });
+    setFinancingError('');
   };
 
   return (
@@ -244,16 +320,162 @@ export default function PolicyPage() {
         />
       )}
 
+      {isFinanceRole && financingError && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{financingError}</div>
+      )}
+
       {isFinanceRole && (
         <CapabilityOpportunityPanel
-          title={lang === 'en' ? 'Financing opportunities' : 'Peluang pembiayaan yang tersedia'}
+          title={lang === 'en' ? 'Financeable transactions' : 'Transaksi yang bisa dibiayai'}
           description={lang === 'en'
-            ? 'Pick a farmer financing candidate to see how supply, demand, and risk signals become an assessment.'
-            : 'Pilih kandidat pembiayaan petani untuk melihat bagaimana sinyal pasokan, demand, dan risiko menjadi assessment.'}
+            ? 'Real accepted, in-progress, or completed transactions. Pick one to create a financing offer for the farmer.'
+            : 'Transaksi nyata yang sudah accepted, in-progress, atau completed. Pilih satu untuk membuat penawaran pembiayaan bagi petani.'}
           icon={BadgeCheck}
-          opportunities={financeOpportunities}
-          onSelect={(opportunity) => selectFinanceOpportunity(opportunity as FinanceOpportunity)}
+          opportunities={transactionOpportunities}
+          onSelect={selectTransactionForOffer}
+          emptyLabel={financingLoading
+            ? (lang === 'en' ? 'Loading transactions...' : 'Memuat transaksi...')
+            : (lang === 'en' ? 'No financeable transactions yet.' : 'Belum ada transaksi yang bisa dibiayai.')}
         />
+      )}
+
+      {isFinanceRole && offerTransaction && (
+        <form onSubmit={handleCreateOffer} className="bg-white rounded-xl border border-surface-200 p-6 space-y-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-base font-semibold text-gray-900">
+                {lang === 'en' ? 'Create financing offer' : 'Buat penawaran pembiayaan'}
+              </h2>
+              <p className="mt-1 text-sm text-surface-600">
+                {lang === 'en'
+                  ? `For transaction: ${getCommodityLabelShort(offerTransaction.commodity)} - ${offerTransaction.volume} ${offerTransaction.volume_unit} (${offerTransaction.delivery_city ? offerTransaction.delivery_city + ', ' : ''}${offerTransaction.delivery_province})`
+                  : `Untuk transaksi: ${getCommodityLabelShort(offerTransaction.commodity)} - ${offerTransaction.volume} ${offerTransaction.volume_unit} (${offerTransaction.delivery_city ? offerTransaction.delivery_city + ', ' : ''}${offerTransaction.delivery_province})`}
+              </p>
+            </div>
+            <Button type="button" size="sm" variant="outline" onClick={() => setOfferTransaction(null)}>
+              {lang === 'en' ? 'Cancel' : 'Batal'}
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Input
+              label={lang === 'en' ? 'Institution name' : 'Nama lembaga'}
+              value={offerForm.institutionName}
+              onChange={(e) => setOfferForm({ ...offerForm, institutionName: e.target.value })}
+              required
+            />
+            <Input
+              label={lang === 'en' ? 'Product name' : 'Nama produk'}
+              value={offerForm.productName}
+              onChange={(e) => setOfferForm({ ...offerForm, productName: e.target.value })}
+              required
+            />
+            <Input
+              type="number"
+              label={lang === 'en' ? 'Minimum amount (IDR)' : 'Jumlah minimum (IDR)'}
+              value={offerForm.amountMin}
+              onChange={(e) => setOfferForm({ ...offerForm, amountMin: e.target.value })}
+              required
+              min={0}
+            />
+            <Input
+              type="number"
+              label={lang === 'en' ? 'Maximum amount (IDR)' : 'Jumlah maksimum (IDR)'}
+              value={offerForm.amountMax}
+              onChange={(e) => setOfferForm({ ...offerForm, amountMax: e.target.value })}
+              required
+              min={0}
+            />
+            <Input
+              label={lang === 'en' ? 'Interest rate (optional)' : 'Suku bunga (opsional)'}
+              value={offerForm.interestRate}
+              onChange={(e) => setOfferForm({ ...offerForm, interestRate: e.target.value })}
+              placeholder={lang === 'en' ? 'e.g. 0.8%/month' : 'contoh: 0,8%/bulan'}
+            />
+            <Input
+              type="number"
+              label={lang === 'en' ? 'Tenor (months, optional)' : 'Tenor (bulan, opsional)'}
+              value={offerForm.tenorMonths}
+              onChange={(e) => setOfferForm({ ...offerForm, tenorMonths: e.target.value })}
+              min={0}
+            />
+          </div>
+
+          <Textarea
+            label={lang === 'en' ? 'Notes (optional)' : 'Catatan (opsional)'}
+            value={offerForm.notes}
+            onChange={(e) => setOfferForm({ ...offerForm, notes: e.target.value })}
+            rows={3}
+          />
+
+          <Button type="submit" disabled={financingSaving}>
+            {financingSaving ? (
+              <span className="flex items-center gap-2">
+                <Spinner size="sm" />
+                {lang === 'en' ? 'Saving...' : 'Menyimpan...'}
+              </span>
+            ) : (
+              lang === 'en' ? 'Send offer' : 'Kirim penawaran'
+            )}
+          </Button>
+        </form>
+      )}
+
+      {isFinanceRole && (
+        <div className="bg-white rounded-xl border border-surface-200 p-6">
+          <h2 className="text-base font-semibold text-gray-900">
+            {lang === 'en' ? 'My offers' : 'Penawaran saya'}
+          </h2>
+          {myOffers.length === 0 ? (
+            <p className="mt-3 text-sm text-surface-500">
+              {lang === 'en' ? 'You have not created any financing offers yet.' : 'Anda belum membuat penawaran pembiayaan.'}
+            </p>
+          ) : (
+            <div className="mt-4 space-y-3">
+              {myOffers.map((offer) => (
+                <div key={offer.id} className="rounded-lg border border-surface-200 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-gray-900">{offer.institution_name} - {offer.product_name}</p>
+                      <p className="text-sm text-surface-600">
+                        IDR {offer.amount_min.toLocaleString('id-ID')} - {offer.amount_max.toLocaleString('id-ID')}
+                        {offer.interest_rate ? ` - ${offer.interest_rate}` : ''}
+                        {offer.tenor_months ? ` - ${offer.tenor_months} ${lang === 'en' ? 'months' : 'bulan'}` : ''}
+                      </p>
+                    </div>
+                    <Badge variant={
+                      offer.status === 'approved' ? 'success'
+                        : offer.status === 'rejected' ? 'danger'
+                        : offer.status === 'requested' || offer.status === 'reviewing' ? 'warning'
+                        : 'primary'
+                    }>
+                      {getFinancingStatusLabel(offer.status)}
+                    </Badge>
+                  </div>
+                  {(offer.status === 'requested' || offer.status === 'reviewing') && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {offer.status === 'requested' && (
+                        <Button type="button" size="sm" variant="outline" disabled={financingSaving} onClick={() => handleOfferIntent(offer.id, 'review')}>
+                          {lang === 'en' ? 'Mark reviewing' : 'Tandai ditinjau'}
+                        </Button>
+                      )}
+                      {offer.status === 'reviewing' && (
+                        <>
+                          <Button type="button" size="sm" disabled={financingSaving} onClick={() => handleOfferIntent(offer.id, 'approve')}>
+                            {lang === 'en' ? 'Approve' : 'Setujui'}
+                          </Button>
+                          <Button type="button" size="sm" variant="outline" disabled={financingSaving} onClick={() => handleOfferIntent(offer.id, 'reject')}>
+                            {lang === 'en' ? 'Reject' : 'Tolak'}
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       {/* History Panel */}

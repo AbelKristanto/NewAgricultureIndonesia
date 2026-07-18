@@ -12,6 +12,8 @@ import {
 } from '@/types/transaction';
 import { COMMODITIES, INDONESIAN_PROVINCES, TRANSACTION_STATUSES } from '@/lib/constants';
 import {
+  canManageLogisticsForTransaction,
+  canUpdateLogisticsForTransaction,
   canRespondToLatestOffer,
   getLatestNegotiationEntry,
   getTransactionParty,
@@ -27,6 +29,8 @@ import Textarea from '@/components/ui/Textarea';
 import FormInfoButton from '@/components/shared/FormInfoButton';
 import ConnectionFlowBanner from '@/components/shared/ConnectionFlowBanner';
 import CapabilityOpportunityPanel, { CapabilityOpportunity } from '@/components/shared/CapabilityOpportunityPanel';
+import LogisticsPlanPanel from '@/components/shared/LogisticsPlanPanel';
+import PaymentPanel from '@/components/shared/PaymentPanel';
 import {
   ArrowRightLeft,
   Check,
@@ -106,6 +110,14 @@ export default function TransactionsPage() {
     ? getTransactionParticipantLabel(selectedTx, user.id)
     : null;
   const canRespond = selectedTx && user ? canRespondToLatestOffer(selectedTx.terms, user.id) : false;
+  const canManageLogistics = selectedTx && user
+    ? canManageLogisticsForTransaction(selectedTx, user.id, user.role)
+    : false;
+  const canUpdateLogistics = selectedTx && user
+    ? canUpdateLogisticsForTransaction(selectedTx, user.id, user.role)
+    : false;
+  const showLogisticsPanel = selectedTx && ['accepted', 'in_progress', 'completed'].includes(selectedTx.status);
+  const showPaymentPanel = selectedTx && ['accepted', 'in_progress', 'completed'].includes(selectedTx.status);
 
   useEffect(() => {
     if (!selectedTxId) {
@@ -895,6 +907,14 @@ export default function TransactionsPage() {
               )}
             </div>
           </div>
+
+          {showLogisticsPanel && (
+            <LogisticsPlanPanel transaction={selectedTx} canCreate={canManageLogistics} canUpdate={canUpdateLogistics} />
+          )}
+
+          {showPaymentPanel && (
+            <PaymentPanel transaction={selectedTx} isBuyer={currentParty === 'buyer'} />
+          )}
         </div>
       )}
 

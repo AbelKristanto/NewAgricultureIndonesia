@@ -169,6 +169,38 @@ export function canAccessTransaction(
   return parseTransactionTerms(transaction.terms).participants?.some((participant) => participant.user_id === userId) ?? false;
 }
 
+/**
+ * Whether a user can create/update a logistics plan for this transaction.
+ * The buyer always can (they're the one who commissions shipping). A
+ * logistics-role user can too, but only if they're listed as a participant —
+ * true for the legacy demo scenarios, not for new transactions (there's no
+ * logistics-provider directory/assignment feature yet).
+ */
+export function canManageLogisticsForTransaction(
+  transaction: Pick<Transaction, 'buyer_id' | 'farmer_id' | 'terms'>,
+  userId: string,
+  userRole: string
+): boolean {
+  if (userRole === 'buyer' && transaction.buyer_id === userId) return true;
+  if (userRole === 'logistics' && canAccessTransaction(transaction, userId)) return true;
+  return false;
+}
+
+/**
+ * Whether a user can update an existing logistics plan (status, position
+ * pings, checkpoints, proof photos). Narrower than
+ * canManageLogisticsForTransaction — the buyer can commission/create a
+ * plan, but day-to-day tracking updates should come from the logistics
+ * provider actually moving the goods, not the buyer.
+ */
+export function canUpdateLogisticsForTransaction(
+  transaction: Pick<Transaction, 'buyer_id' | 'farmer_id' | 'terms'>,
+  userId: string,
+  userRole: string
+): boolean {
+  return userRole === 'logistics' && canAccessTransaction(transaction, userId);
+}
+
 export function getTransactionParticipantLabel(
   transaction: Pick<Transaction, 'buyer_id' | 'farmer_id' | 'terms'>,
   userId: string

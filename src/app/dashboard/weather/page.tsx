@@ -6,6 +6,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase/client';
 import { WeatherInput } from '@/types/weather';
 import { INDONESIAN_PROVINCES, COMMODITIES, WEATHER_SCENARIOS, SEASONS } from '@/lib/constants';
+import { BMKG_REGION_MAP } from '@/lib/bmkg-regions';
+import { BmkgForecast } from '@/lib/bmkg';
 import Button from '@/components/ui/Button';
 import Select from '@/components/ui/Select';
 import Textarea from '@/components/ui/Textarea';
@@ -13,7 +15,7 @@ import Spinner from '@/components/ui/Spinner';
 import ResultSection from '@/components/shared/ResultSection';
 import FormInfoButton from '@/components/shared/FormInfoButton';
 import ReactMarkdown from 'react-markdown';
-import { CloudRain, Sprout, Droplets, Calendar, Shield, AlertTriangle, History, ChevronDown, ChevronUp } from 'lucide-react';
+import { CloudRain, Sprout, Droplets, Calendar, Shield, AlertTriangle, History, ChevronDown, ChevronUp, Satellite } from 'lucide-react';
 
 interface WeatherResult {
   impactAssessment?: string;
@@ -40,6 +42,7 @@ export default function WeatherPage() {
   const abortControllerRef = useRef<AbortController | null>(null);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<WeatherResult | null>(null);
+  const [bmkgData, setBmkgData] = useState<BmkgForecast | null>(null);
   const [error, setError] = useState('');
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
@@ -57,6 +60,7 @@ export default function WeatherPage() {
     setLoading(true);
     setError('');
     setResults(null);
+    setBmkgData(null);
 
     const input: WeatherInput = {
       regions: form.region ? [form.region] : [],
@@ -79,6 +83,7 @@ export default function WeatherPage() {
       if (!isMounted.current) return;
       if (data.success) {
         setResults(data.data);
+        setBmkgData(data.bmkg || null);
         if (user?.id) {
           const supabase = supabaseRef.current;
           const { data: hist } = await supabase
@@ -133,6 +138,7 @@ export default function WeatherPage() {
     const inp = item.input as Record<string, unknown>;
     const regions = inp.regions as string[] | undefined;
     const crops = inp.crops as string[] | undefined;
+    setBmkgData(null);
     setForm({
       region: regions?.[0] || '',
       crop: crops?.[0] || '',
@@ -147,6 +153,11 @@ export default function WeatherPage() {
     value: p.value,
     label: lang === 'en' ? p.labelEn : p.labelId,
   }));
+
+  const bmkgCoveredProvinceLabels = INDONESIAN_PROVINCES
+    .filter((p) => BMKG_REGION_MAP[p.value])
+    .map((p) => (lang === 'en' ? p.labelEn : p.labelId))
+    .join(', ');
 
   const cropOptions = COMMODITIES.map((c) => ({
     value: c.value,
@@ -219,8 +230,18 @@ export default function WeatherPage() {
             title={lang === 'en' ? 'How weather analysis works' : 'Cara membaca analisis cuaca'}
             description={lang === 'en' ? 'The result focuses on crop impact, schedule changes, irrigation, and risk controls for the selected scenario.' : 'Hasilnya fokus ke dampak tanaman, perubahan jadwal, irigasi, dan kontrol risiko untuk skenario yang dipilih.'}
             tips={lang === 'en'
-              ? ['Select the region closest to the farm or route.', 'Use notes for local issues like flooding, drought, or road access.', 'Use this before locking transaction dates.']
-              : ['Pilih wilayah yang paling dekat dengan lahan atau rute.', 'Gunakan catatan untuk isu lokal seperti banjir, kekeringan, atau akses jalan.', 'Pakai ini sebelum mengunci tanggal transaksi.']}
+              ? [
+                  'Select the region closest to the farm or route.',
+                  'Use notes for local issues like flooding, drought, or road access.',
+                  'Use this before locking transaction dates.',
+                  `Live BMKG conditions are available for: ${bmkgCoveredProvinceLabels}.`,
+                ]
+              : [
+                  'Pilih wilayah yang paling dekat dengan lahan atau rute.',
+                  'Gunakan catatan untuk isu lokal seperti banjir, kekeringan, atau akses jalan.',
+                  'Pakai ini sebelum mengunci tanggal transaksi.',
+                  `Data BMKG langsung tersedia untuk: ${bmkgCoveredProvinceLabels}.`,
+                ]}
           />
         </div>
 
@@ -287,6 +308,66 @@ export default function WeatherPage() {
           )}
         </Button>
       </form>
+
+      {bmkgData && (
+        <div className="bg-white rounded-xl border border-surface-200 p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <Satellite className="h-5 w-5 text-sky-600" />
+            <h2 className="text-lg font-bold text-gray-900">
+              {lang === 'en' ? 'Current BMKG Conditions' : 'Kondisi BMKG Saat Ini'}
+            </h2>
+          </div>
+          <p className="text-sm text-surface-600">
+            {bmkgData.location.city}, {bmkgData.location.province}
+          </p>
+          {bmkgData.entries[0] && (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="rounded-lg bg-sky-50 p-3">
+                <p className="text-xs text-surface-500">{lang === 'en' ? 'Weather' : 'Cuaca'}</p>
+                <p className="font-semibold text-gray-900">
+                  {lang === 'en' ? bmkgData.entries[0].weatherDescEn : bmkgData.entries[0].weatherDesc}
+                </p>
+              </div>
+              <div className="rounded-lg bg-sky-50 p-3">
+                <p className="text-xs text-surface-500">{lang === 'en' ? 'Temperature' : 'Suhu'}</p>
+                <p className="font-semibold text-gray-900">{bmkgData.entries[0].temperatureC}°C</p>
+              </div>
+              <div className="rounded-lg bg-sky-50 p-3">
+                <p className="text-xs text-surface-500">{lang === 'en' ? 'Humidity' : 'Kelembapan'}</p>
+                <p className="font-semibold text-gray-900">{bmkgData.entries[0].humidityPercent}%</p>
+              </div>
+              <div className="rounded-lg bg-sky-50 p-3">
+                <p className="text-xs text-surface-500">{lang === 'en' ? 'Rain' : 'Curah Hujan'}</p>
+                <p className="font-semibold text-gray-900">{bmkgData.entries[0].precipitationMm} mm</p>
+              </div>
+            </div>
+          )}
+          {bmkgData.entries.length > 1 && (
+            <div className="overflow-x-auto">
+              <div className="flex gap-2">
+                {bmkgData.entries.slice(1, 8).map((entry) => (
+                  <div key={entry.localDatetime} className="shrink-0 rounded-lg border border-surface-100 bg-surface-50 p-2 text-center text-xs w-24">
+                    <p className="text-surface-500">{entry.localDatetime.slice(11, 16)}</p>
+                    <p className="mt-1 font-medium text-gray-900">{entry.temperatureC}°C</p>
+                    <p className="mt-1 text-surface-600">{lang === 'en' ? entry.weatherDescEn : entry.weatherDesc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <p className="text-xs text-surface-400">
+            {lang === 'en' ? 'Source: BMKG (Badan Meteorologi, Klimatologi, dan Geofisika)' : 'Sumber: BMKG (Badan Meteorologi, Klimatologi, dan Geofisika)'}
+          </p>
+        </div>
+      )}
+
+      {!bmkgData && results && form.region && (
+        <div className="rounded-lg border border-dashed border-surface-300 bg-surface-50 px-4 py-3 text-sm text-surface-500">
+          {lang === 'en'
+            ? 'Live BMKG data is not available yet for this region — the analysis below is AI scenario planning only.'
+            : 'Data BMKG langsung belum tersedia untuk wilayah ini — hasil di bawah murni analisis skenario AI.'}
+        </div>
+      )}
 
       {results && (
         <div className="space-y-4">
