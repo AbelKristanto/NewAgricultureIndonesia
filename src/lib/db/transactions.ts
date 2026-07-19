@@ -76,3 +76,38 @@ export async function updateTransaction(
   if (error) throw error;
   return data;
 }
+
+export interface Counterparty {
+  id: string;
+  username: string;
+}
+
+export async function getDistinctCounterparties(
+  supabase: SupabaseClient,
+  userId: string,
+  role: 'farmer' | 'buyer'
+): Promise<Counterparty[]> {
+  const counterpartColumn = role === 'farmer' ? 'buyer_id' : 'farmer_id';
+  const ownColumn = role === 'farmer' ? 'farmer_id' : 'buyer_id';
+
+  const { data, error } = await supabase
+    .from('transactions')
+    .select(counterpartColumn)
+    .eq(ownColumn, userId)
+    .not(counterpartColumn, 'is', null);
+
+  if (error) throw error;
+
+  const ids = Array.from(
+    new Set((data || []).map((row: Record<string, string>) => row[counterpartColumn]).filter(Boolean))
+  );
+  if (ids.length === 0) return [];
+
+  const { data: profiles, error: profilesError } = await supabase
+    .from('profiles')
+    .select('id, username')
+    .in('id', ids);
+
+  if (profilesError) throw profilesError;
+  return (profiles || []) as Counterparty[];
+}

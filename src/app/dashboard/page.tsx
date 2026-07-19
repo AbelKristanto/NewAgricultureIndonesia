@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRole } from '@/contexts/RoleContext';
 import { getPermissions } from '@/lib/rbac';
 import { useDashboardData, DashboardMetrics } from '@/hooks/useDashboardData';
+import { formatTimeAgo } from '@/lib/time-format';
 import Card from '@/components/ui/Card';
 import {
   BarChart3,
@@ -22,22 +23,6 @@ import {
   MapPinned,
 } from 'lucide-react';
 import Link from 'next/link';
-
-function timeAgo(dateStr: string, lang: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  const hours = Math.floor(diff / 3600000);
-  const days = Math.floor(diff / 86400000);
-
-  if (lang === 'id') {
-    if (mins < 60) return `${mins} menit lalu`;
-    if (hours < 24) return `${hours} jam lalu`;
-    return `${days} hari lalu`;
-  }
-  if (mins < 60) return `${mins}m ago`;
-  if (hours < 24) return `${hours}h ago`;
-  return `${days}d ago`;
-}
 
 /** Maps metric card keys to their translation keys, icons, and color classes */
 const METRIC_CARD_CONFIG: Record<
@@ -444,7 +429,7 @@ export default function DashboardPage() {
                     <div>
                       <p className="text-sm font-medium text-gray-900">{item.title}</p>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs text-surface-400">{timeAgo(item.created_at, lang)}</span>
+                        <span className="text-xs text-surface-400">{formatTimeAgo(item.created_at, lang)}</span>
                         <span className="text-xs bg-surface-100 text-surface-500 px-2 py-0.5 rounded-full">{item.type}</span>
                       </div>
                     </div>

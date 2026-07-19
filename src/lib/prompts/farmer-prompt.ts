@@ -1,6 +1,25 @@
 import { FarmerInput } from '@/types/farmer';
+import { LandPlot } from '@/types/land-plots';
 
-export function buildFarmerPrompt(input: FarmerInput): string {
+const LAND_PLOT_STATUS_LABEL: Record<LandPlot['status'], string> = {
+  active: 'actively planted (a crop is currently growing on this plot)',
+  fallow: 'fallow / empty (no crop currently planted)',
+  harvested: 'recently harvested (awaiting the next planting cycle)',
+};
+
+export function buildFarmerPrompt(input: FarmerInput, landPlot?: LandPlot | null): string {
+  const landPlotSection = landPlot
+    ? `
+REGISTERED LAND PLOT:
+- Plot name: ${landPlot.name}
+- Current status: ${LAND_PLOT_STATUS_LABEL[landPlot.status]}
+- Planting date: ${landPlot.planting_date || 'Not recorded'}
+- Harvest estimate: ${landPlot.harvest_estimate || 'Not recorded'}
+
+This analysis is for a real, registered land plot. Factor its current status into your recommendations - for example, do not recommend immediate replanting if the plot is actively planted with a recent planting date; if it is fallow or recently harvested, prioritize recommendations for the next planting cycle.
+`
+    : '';
+
   return `Analyze the following farmer's land data and provide comprehensive crop recommendations.
 
 FARMER DATA:
@@ -13,7 +32,7 @@ FARMER DATA:
 - Available Budget: IDR ${input.budget.toLocaleString()}
 - Target Timeline: ${input.timeline}
 - Additional Notes: ${input.notes || 'None'}
-
+${landPlotSection}
 Respond ONLY with valid JSON matching this exact schema (no markdown, no explanation outside JSON):
 {
   "cropRecommendations": [

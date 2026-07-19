@@ -39,13 +39,13 @@ describe('RBAC Permission Configuration', () => {
 
     it('should have correct pages', () => {
       expect(ROLE_PERMISSIONS.farmer.pages).toEqual([
-        '/dashboard', '/dashboard/farmer', '/dashboard/chat', '/dashboard/weather', '/dashboard/matching', '/dashboard/farmer-operations',
+        '/dashboard', '/dashboard/farmer', '/dashboard/chat', '/dashboard/weather', '/dashboard/matching', '/dashboard/farmer-operations', '/dashboard/land-plots', '/dashboard/monitoring', '/dashboard/production-history', '/dashboard/calendar', '/dashboard/financial', '/dashboard/activity', '/dashboard/transactions', '/dashboard/notifications', '/dashboard/profile', '/dashboard/settings', '/dashboard/help', '/dashboard/community', '/dashboard/contracts', '/dashboard/sustainability', '/dashboard/market-intelligence', '/dashboard/pest-alert', '/dashboard/plant-scan',
       ]);
     });
 
     it('should have correct API routes', () => {
       expect(ROLE_PERMISSIONS.farmer.apiRoutes).toEqual([
-        '/api/ai/farmer', '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions', '/api/farmer-operations', '/api/listings', '/api/notifications', '/api/payments',
+        '/api/ai/farmer', '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/ai/calendar', '/api/transactions', '/api/farmer-operations', '/api/listings', '/api/notifications', '/api/payments', '/api/land-plots', '/api/crop-monitoring', '/api/harvest-records', '/api/community', '/api/contracts', '/api/sustainability', '/api/ai/market-intelligence', '/api/ai/pest-alert', '/api/plant-scans',
       ]);
     });
 
@@ -55,7 +55,7 @@ describe('RBAC Permission Configuration', () => {
 
     it('should have correct quick actions', () => {
       expect(ROLE_PERMISSIONS.farmer.quickActions).toEqual([
-        '/dashboard/farmer', '/dashboard/farmer-operations', '/dashboard/weather', '/dashboard/chat', '/dashboard/matching',
+        '/dashboard/farmer', '/dashboard/farmer-operations', '/dashboard/land-plots', '/dashboard/monitoring', '/dashboard/production-history', '/dashboard/calendar', '/dashboard/financial', '/dashboard/activity', '/dashboard/weather', '/dashboard/chat', '/dashboard/matching', '/dashboard/transactions',
       ]);
     });
   });
@@ -67,13 +67,13 @@ describe('RBAC Permission Configuration', () => {
 
     it('should have correct pages', () => {
       expect(ROLE_PERMISSIONS.buyer.pages).toEqual([
-        '/dashboard', '/dashboard/buyer', '/dashboard/chat', '/dashboard/matching', '/dashboard/transactions', '/dashboard/weather',
+        '/dashboard', '/dashboard/buyer', '/dashboard/chat', '/dashboard/matching', '/dashboard/transactions', '/dashboard/weather', '/dashboard/farmer-operations', '/dashboard/activity', '/dashboard/notifications', '/dashboard/profile', '/dashboard/settings', '/dashboard/help', '/dashboard/community', '/dashboard/warehouse', '/dashboard/contracts', '/dashboard/sustainability', '/dashboard/esg-report', '/dashboard/market-intelligence',
       ]);
     });
 
     it('should have correct API routes', () => {
       expect(ROLE_PERMISSIONS.buyer.apiRoutes).toEqual([
-        '/api/ai/buyer', '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions', '/api/listings', '/api/notifications', '/api/farmer-operations', '/api/payments',
+        '/api/ai/buyer', '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions', '/api/listings', '/api/notifications', '/api/farmer-operations', '/api/payments', '/api/community', '/api/warehouses', '/api/contracts', '/api/sustainability', '/api/ai/esg-report', '/api/ai/market-intelligence',
       ]);
     });
 
@@ -95,13 +95,13 @@ describe('RBAC Permission Configuration', () => {
 
     it('should have correct pages', () => {
       expect(ROLE_PERMISSIONS.government.pages).toEqual([
-        '/dashboard', '/dashboard/farmer', '/dashboard/buyer', '/dashboard/policy', '/dashboard/chat', '/dashboard/matching', '/dashboard/weather', '/dashboard/transactions', '/dashboard/simulation',
+        '/dashboard', '/dashboard/farmer', '/dashboard/buyer', '/dashboard/policy', '/dashboard/chat', '/dashboard/matching', '/dashboard/weather', '/dashboard/transactions', '/dashboard/simulation', '/dashboard/activity', '/dashboard/notifications', '/dashboard/profile', '/dashboard/settings', '/dashboard/help', '/dashboard/sustainability', '/dashboard/esg-report', '/dashboard/market-intelligence', '/dashboard/pest-alert', '/dashboard/platform-overview',
       ]);
     });
 
     it('should have correct API routes', () => {
       expect(ROLE_PERMISSIONS.government.apiRoutes).toEqual([
-        '/api/ai/farmer', '/api/ai/buyer', '/api/ai/policy', '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions', '/api/admin/simulation', '/api/listings', '/api/notifications', '/api/account',
+        '/api/ai/farmer', '/api/ai/buyer', '/api/ai/policy', '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions', '/api/admin/simulation', '/api/listings', '/api/notifications', '/api/account', '/api/sustainability', '/api/ai/esg-report', '/api/ai/market-intelligence', '/api/ai/pest-alert', '/api/platform-overview',
       ]);
     });
 
@@ -123,13 +123,13 @@ describe('RBAC Permission Configuration', () => {
 
     it('should have correct pages', () => {
       expect(ROLE_PERMISSIONS.supplier.pages).toEqual([
-        '/dashboard', '/dashboard/matching', '/dashboard/transactions', '/dashboard/chat', '/dashboard/weather',
+        '/dashboard', '/dashboard/matching', '/dashboard/transactions', '/dashboard/chat', '/dashboard/weather', '/dashboard/activity', '/dashboard/notifications', '/dashboard/profile', '/dashboard/settings', '/dashboard/help', '/dashboard/community', '/dashboard/warehouse', '/dashboard/market-intelligence',
       ]);
     });
 
     it('should have correct API routes', () => {
       expect(ROLE_PERMISSIONS.supplier.apiRoutes).toEqual([
-        '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions', '/api/listings', '/api/notifications',
+        '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions', '/api/listings', '/api/notifications', '/api/community', '/api/warehouses', '/api/ai/market-intelligence',
       ]);
     });
 
@@ -151,13 +151,13 @@ describe('RBAC Permission Configuration', () => {
 
     it('should have correct pages', () => {
       expect(ROLE_PERMISSIONS.logistics.pages).toEqual([
-        '/dashboard', '/dashboard/matching', '/dashboard/transactions', '/dashboard/chat', '/dashboard/weather',
+        '/dashboard', '/dashboard/matching', '/dashboard/transactions', '/dashboard/chat', '/dashboard/weather', '/dashboard/farmer-operations', '/dashboard/activity', '/dashboard/notifications', '/dashboard/profile', '/dashboard/settings', '/dashboard/help', '/dashboard/community', '/dashboard/warehouse',
       ]);
     });
 
     it('should have correct API routes', () => {
       expect(ROLE_PERMISSIONS.logistics.apiRoutes).toEqual([
-        '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions', '/api/listings', '/api/notifications', '/api/farmer-operations',
+        '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions', '/api/listings', '/api/notifications', '/api/farmer-operations', '/api/community', '/api/warehouses',
       ]);
     });
 
@@ -179,13 +179,13 @@ describe('RBAC Permission Configuration', () => {
 
     it('should have correct pages', () => {
       expect(ROLE_PERMISSIONS.finance.pages).toEqual([
-        '/dashboard', '/dashboard/policy', '/dashboard/matching', '/dashboard/transactions', '/dashboard/chat', '/dashboard/weather',
+        '/dashboard', '/dashboard/policy', '/dashboard/matching', '/dashboard/transactions', '/dashboard/chat', '/dashboard/weather', '/dashboard/farmer-operations', '/dashboard/activity', '/dashboard/notifications', '/dashboard/profile', '/dashboard/settings', '/dashboard/help', '/dashboard/sustainability', '/dashboard/esg-report',
       ]);
     });
 
     it('should have correct API routes', () => {
       expect(ROLE_PERMISSIONS.finance.apiRoutes).toEqual([
-        '/api/ai/policy', '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions', '/api/listings', '/api/notifications', '/api/farmer-operations', '/api/account',
+        '/api/ai/policy', '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions', '/api/listings', '/api/notifications', '/api/farmer-operations', '/api/account', '/api/sustainability', '/api/ai/esg-report',
       ]);
     });
 
@@ -209,8 +209,8 @@ describe('RBAC Permission Configuration', () => {
       expect(ROLE_PERMISSIONS.admin.pages).toEqual(['/admin']);
     });
 
-    it('should only have the /api/admin-panel API route', () => {
-      expect(ROLE_PERMISSIONS.admin.apiRoutes).toEqual(['/api/admin-panel']);
+    it('should have the expected API routes', () => {
+      expect(ROLE_PERMISSIONS.admin.apiRoutes).toEqual(['/api/admin-panel', '/api/ai/esg-report', '/api/ai/market-intelligence']);
     });
 
     it('should not be able to reach dashboard pages', () => {

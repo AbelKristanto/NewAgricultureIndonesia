@@ -193,13 +193,14 @@ async function fetchMetrics(
 
 /**
  * Fetches recent activity items from relevant tables based on role.
- * Returns last 5 items sorted by created_at desc.
+ * Returns the last `limit` items sorted by created_at desc.
  */
-async function fetchRecentActivity(
+export async function fetchRecentActivity(
   supabase: ReturnType<typeof createClient>,
   userId: string,
   role: UserRole | null | undefined,
-  signal: AbortSignal
+  signal: AbortSignal,
+  limit: number = 5
 ): Promise<RecentActivityItem[]> {
   const permissions = getPermissions(role);
   const pages = permissions.pages;
@@ -215,7 +216,7 @@ async function fetchRecentActivity(
           .select('input, created_at')
           .eq('user_id', userId)
           .order('created_at', { ascending: false })
-          .limit(5)
+          .limit(limit)
           .abortSignal(signal);
         return (data || []).map((row: { input: unknown; created_at: string }) => {
           const input = row.input as Record<string, string> | null;
@@ -239,7 +240,7 @@ async function fetchRecentActivity(
           .select('input, created_at')
           .eq('user_id', userId)
           .order('created_at', { ascending: false })
-          .limit(5)
+          .limit(limit)
           .abortSignal(signal);
         return (data || []).map((row: { input: unknown; created_at: string }) => {
           const input = row.input as Record<string, string> | null;
@@ -263,7 +264,7 @@ async function fetchRecentActivity(
           .select('input, created_at')
           .eq('user_id', userId)
           .order('created_at', { ascending: false })
-          .limit(5)
+          .limit(limit)
           .abortSignal(signal);
         return (data || []).map((row: { input: unknown; created_at: string }) => {
           const input = row.input as Record<string, string[]> | null;
@@ -287,7 +288,7 @@ async function fetchRecentActivity(
           .select('id, title, created_at')
           .eq('user_id', userId)
           .order('created_at', { ascending: false })
-          .limit(5)
+          .limit(limit)
           .abortSignal(signal);
         return (data || []).map((row: { id: string; title: string | null; created_at: string }) => ({
           type: 'Chat',
@@ -308,7 +309,7 @@ async function fetchRecentActivity(
           .select('input, created_at')
           .eq('user_id', userId)
           .order('created_at', { ascending: false })
-          .limit(5)
+          .limit(limit)
           .abortSignal(signal);
         return (data || []).map((row: { input: unknown; created_at: string }) => {
           const input = row.input as Record<string, string> | null;
@@ -332,7 +333,7 @@ async function fetchRecentActivity(
           .select('input, created_at')
           .eq('user_id', userId)
           .order('created_at', { ascending: false })
-          .limit(5)
+          .limit(limit)
           .abortSignal(signal);
         return (data || []).map((row: { input: unknown; created_at: string }) => {
           const input = row.input as Record<string, string> | null;
@@ -352,11 +353,95 @@ async function fetchRecentActivity(
     activityFetchers.push(
       (async (): Promise<RecentActivityItem[]> => {
         const transactions = await fetchUserTransactions(signal);
-        return transactions.slice(0, 5).map((tx) => ({
+        return transactions.slice(0, limit).map((tx) => ({
           type: 'Transaction',
           title: `${tx.commodity} - ${tx.status}`,
           created_at: tx.created_at,
           href: `/dashboard/transactions?tx=${encodeURIComponent(tx.id)}`,
+        }));
+      })()
+    );
+  }
+
+  // Land plot activity
+  if (pages.includes('/dashboard/land-plots')) {
+    activityFetchers.push(
+      (async (): Promise<RecentActivityItem[]> => {
+        const { data } = await supabase
+          .from('land_plots')
+          .select('name, created_at')
+          .eq('farmer_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(limit)
+          .abortSignal(signal);
+        return (data || []).map((row: { name: string; created_at: string }) => ({
+          type: 'LandPlot',
+          title: row.name,
+          created_at: row.created_at,
+          href: '/dashboard/land-plots',
+        }));
+      })()
+    );
+  }
+
+  // Crop monitoring log activity
+  if (pages.includes('/dashboard/monitoring')) {
+    activityFetchers.push(
+      (async (): Promise<RecentActivityItem[]> => {
+        const { data } = await supabase
+          .from('crop_monitoring_logs')
+          .select('log_type, notes, logged_at')
+          .eq('farmer_id', userId)
+          .order('logged_at', { ascending: false })
+          .limit(limit)
+          .abortSignal(signal);
+        return (data || []).map((row: { log_type: string; notes: string | null; logged_at: string }) => ({
+          type: 'CropLog',
+          title: row.notes ? `${row.log_type}: ${row.notes}` : row.log_type,
+          created_at: row.logged_at,
+          href: '/dashboard/monitoring',
+        }));
+      })()
+    );
+  }
+
+  // Harvest record activity
+  if (pages.includes('/dashboard/production-history')) {
+    activityFetchers.push(
+      (async (): Promise<RecentActivityItem[]> => {
+        const { data } = await supabase
+          .from('harvest_records')
+          .select('commodity, outcome, created_at')
+          .eq('farmer_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(limit)
+          .abortSignal(signal);
+        return (data || []).map((row: { commodity: string; outcome: string; created_at: string }) => ({
+          type: 'Harvest',
+          title: `${row.commodity} - ${row.outcome}`,
+          created_at: row.created_at,
+          href: '/dashboard/production-history',
+        }));
+      })()
+    );
+  }
+
+  // AI calendar generation activity
+  if (pages.includes('/dashboard/calendar')) {
+    activityFetchers.push(
+      (async (): Promise<RecentActivityItem[]> => {
+        const { data } = await supabase
+          .from('calendar_analyses')
+          .select('created_at')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(limit)
+          .abortSignal(signal);
+        return (data || []).map((row: { created_at: string }) => ({
+          type: 'Calendar',
+          title: 'Kalender AI',
+          created_at: row.created_at,
+          href: '/dashboard/calendar',
         }));
       })()
     );
@@ -368,7 +453,7 @@ async function fetchRecentActivity(
 
   // Sort by created_at descending and take top 5
   allItems.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  return allItems.slice(0, 5);
+  return allItems.slice(0, limit);
 }
 
 /**

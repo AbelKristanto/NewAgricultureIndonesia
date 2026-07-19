@@ -35,6 +35,11 @@ export const ENDPOINT_CATEGORY_MAP: Record<string, string> = {
   '/api/ai/matching': 'ai_analysis',
   '/api/ai/policy': 'ai_analysis',
   '/api/ai/weather': 'ai_analysis',
+  '/api/ai/calendar': 'ai_analysis',
+  '/api/ai/esg-report': 'ai_analysis',
+  '/api/ai/market-intelligence': 'ai_analysis',
+  '/api/ai/pest-alert': 'ai_analysis',
+  '/api/plant-scans': 'ai_analysis',
   '/api/ai/chat': 'chat',
 };
 

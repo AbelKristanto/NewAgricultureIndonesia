@@ -11,12 +11,13 @@ export async function proxy(request: NextRequest) {
   const isLogin = pathname === '/login';
   const isSignup = pathname === '/signup';
   const isPendingVerificationPage = pathname === '/pending-verification';
+  const isAccountDeactivatedPage = pathname === '/account-deactivated';
   const isVerificationUploadRoute = pathname === '/api/account/verification-document';
   const isAdminLogin = pathname === '/admin/login';
   const isAdminArea = pathname.startsWith('/admin') && !isAdminLogin;
   const isPaymentWebhook = pathname === '/api/payments/webhook';
 
-  if (!isDashboard && !isApi && !isLogin && !isSignup && !isPendingVerificationPage && !isAdminArea && !isAdminLogin) {
+  if (!isDashboard && !isApi && !isLogin && !isSignup && !isPendingVerificationPage && !isAccountDeactivatedPage && !isAdminArea && !isAdminLogin) {
     return NextResponse.next();
   }
 
@@ -89,7 +90,17 @@ export async function proxy(request: NextRequest) {
   }
 
   const needsVerification = role === 'finance' || role === 'government';
-  const isBlockedByVerification = needsVerification && status !== 'approved';
+  const isDeactivated = status === 'deactivated';
+  const isBlockedByVerification = needsVerification && status !== 'approved' && !isDeactivated;
+
+  if (isAccountDeactivatedPage) {
+    if (!isDeactivated) {
+      const url = request.nextUrl.clone();
+      url.pathname = getDefaultDashboardPage(role);
+      return NextResponse.redirect(url);
+    }
+    return supabaseResponse;
+  }
 
   if (isPendingVerificationPage) {
     if (!isBlockedByVerification) {
@@ -98,6 +109,18 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(url);
     }
     return supabaseResponse;
+  }
+
+  if (isDeactivated && !isLogin && !isSignup && !isAdminLogin && !isAdminArea) {
+    if (isApi) {
+      return NextResponse.json(
+        { error: 'Account deactivated' },
+        { status: 403 }
+      );
+    }
+    const url = request.nextUrl.clone();
+    url.pathname = '/account-deactivated';
+    return NextResponse.redirect(url);
   }
 
   if (isBlockedByVerification && !isVerificationUploadRoute && !isLogin && !isSignup && !isAdminLogin && !isAdminArea) {
@@ -114,7 +137,11 @@ export async function proxy(request: NextRequest) {
 
   if (isLogin || isSignup) {
     const url = request.nextUrl.clone();
-    url.pathname = isBlockedByVerification ? '/pending-verification' : getDefaultDashboardPage(role);
+    url.pathname = isDeactivated
+      ? '/account-deactivated'
+      : isBlockedByVerification
+        ? '/pending-verification'
+        : getDefaultDashboardPage(role);
     return NextResponse.redirect(url);
   }
 
@@ -180,6 +207,7 @@ export const config = {
     '/login',
     '/signup',
     '/pending-verification',
+    '/account-deactivated',
     '/admin/:path*',
   ],
 };

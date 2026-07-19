@@ -158,3 +158,39 @@ export function buildAccountVerificationNotification(
     body: `Verifikasi untuk ${label} ditolak. Silakan hubungi tim Serenagri AI untuk informasi lebih lanjut.`,
   };
 }
+
+export function buildAccountStatusNotification(): NotificationCopy {
+  return {
+    type: 'account_reactivated',
+    title: 'Akun diaktifkan kembali',
+    body: 'Akun Anda telah diaktifkan kembali oleh admin. Anda sekarang punya akses penuh ke Serenagri AI.',
+  };
+}
+
+export function buildContractNotification(
+  event: 'proposed' | 'status_updated',
+  commodityLabel: string,
+  status?: string
+): NotificationCopy {
+  if (event === 'proposed') {
+    return {
+      type: 'contract_proposed',
+      title: `Kontrak baru: ${commodityLabel}`,
+      body: `Anda menerima usulan kontrak tani untuk ${commodityLabel}. Buka Contract Farming untuk meninjau.`,
+    };
+  }
+
+  return {
+    type: 'contract_status_updated',
+    title: `Status kontrak berubah: ${commodityLabel}`,
+    body: `Status kontrak ${commodityLabel} berubah menjadi "${status}".`,
+  };
+}
+
+export function buildCommunityReplyNotification(replierUsername: string, postTitle: string): NotificationCopy {
+  return {
+    type: 'community_reply',
+    title: `Balasan baru: ${postTitle}`,
+    body: `${replierUsername} membalas postingan Anda di Community.`,
+  };
+}

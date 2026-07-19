@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase/client';
 import { FarmerInput } from '@/types/farmer';
-import { INDONESIAN_PROVINCES, SOIL_TYPES, WATER_SOURCES, TIMELINE_OPTIONS } from '@/lib/constants';
+import { LandPlot } from '@/types/land-plots';
+import { INDONESIAN_PROVINCES, SOIL_TYPES, WATER_SOURCES, TIMELINE_OPTIONS, COMMODITIES } from '@/lib/constants';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
@@ -34,7 +36,7 @@ interface HistoryItem {
   created_at: string;
 }
 
-export default function FarmerPage() {
+function FarmerPageInner() {
   const { t, lang } = useLanguage();
   const { user } = useAuth();
   const supabaseRef = useRef(createClient());
@@ -45,6 +47,9 @@ export default function FarmerPage() {
   const [error, setError] = useState('');
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [landPlots, setLandPlots] = useState<LandPlot[]>([]);
+  const [selectedLandPlotId, setSelectedLandPlotId] = useState<string | null>(null);
+  const searchParams = useSearchParams();
 
   const [form, setForm] = useState({
     province: '',
@@ -95,6 +100,49 @@ export default function FarmerPage() {
     };
   }, [user?.id]);
 
+  // Load the farmer's registered land plots on mount
+  useEffect(() => {
+    isMounted.current = true;
+    fetch('/api/land-plots')
+      .then((res) => res.json())
+      .then((data) => {
+        if (!isMounted.current) return;
+        if (data.success) setLandPlots(data.data);
+      });
+  }, []);
+
+  // Auto-select a plot passed via ?landPlotId= (e.g. from the Kelola Lahan page)
+  useEffect(() => {
+    const paramId = searchParams.get('landPlotId');
+    if (!paramId || landPlots.length === 0) return;
+    const plot = landPlots.find((p) => p.id === paramId);
+    if (plot) applyLandPlot(plot);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [landPlots]);
+
+  const applyLandPlot = (plot: LandPlot) => {
+    setSelectedLandPlotId(plot.id);
+    setForm((prev) => ({
+      ...prev,
+      province: plot.province,
+      district: plot.district || prev.district,
+      landSize: String(plot.area_value),
+      landUnit: plot.area_unit,
+      currentCrops: plot.commodity
+        ? COMMODITIES.find((c) => c.value === plot.commodity)?.[lang === 'en' ? 'labelEn' : 'labelId'] || plot.commodity
+        : prev.currentCrops,
+    }));
+  };
+
+  const handleLandPlotChange = (plotId: string) => {
+    if (!plotId) {
+      setSelectedLandPlotId(null);
+      return;
+    }
+    const plot = landPlots.find((p) => p.id === plotId);
+    if (plot) applyLandPlot(plot);
+  };
+
   const loadHistoryItem = (item: HistoryItem) => {
     const inp = item.input as Record<string, unknown>;
     setForm({
@@ -109,6 +157,7 @@ export default function FarmerPage() {
       timeline: (inp.timeline as string) || '1-season',
       notes: (inp.notes as string) || '',
     });
+    setSelectedLandPlotId((inp.landPlotId as string) || null);
     setResults(item.result as unknown as FarmerAnalysisResult);
   };
 
@@ -130,6 +179,7 @@ export default function FarmerPage() {
       timeline: form.timeline,
       notes: form.notes,
       lang,
+      landPlotId: selectedLandPlotId || undefined,
     };
 
     try {
@@ -210,13 +260,15 @@ export default function FarmerPage() {
             ) : (
               history.map((item) => {
                 const inp = item.input as Record<string, string>;
+                const linkedPlot = inp.landPlotId ? landPlots.find((p) => p.id === inp.landPlotId) : undefined;
+                const label = linkedPlot ? linkedPlot.name : `${inp.province || 'Analysis'} - ${inp.currentCrops || 'crops'}`;
                 return (
                   <button
                     key={item.id}
                     onClick={() => loadHistoryItem(item)}
                     className="w-full text-left p-2 rounded-lg hover:bg-surface-50 transition-colors"
                   >
-                    <p className="text-sm font-medium text-gray-800 truncate">{inp.province || 'Analysis'} - {inp.currentCrops || 'crops'}</p>
+                    <p className="text-sm font-medium text-gray-800 truncate">{label}</p>
                     <p className="text-xs text-surface-400">{new Date(item.created_at).toLocaleDateString()}</p>
                   </button>
                 );
@@ -244,6 +296,17 @@ export default function FarmerPage() {
               : ['Pilih provinsi dulu, lalu isi kabupaten/kecamatan.', 'Gunakan angka untuk luas lahan dan budget.', 'Tambahkan kendala di catatan, misalnya banjir atau tenaga kerja terbatas.']}
           />
         </div>
+
+        {landPlots.length > 0 && (
+          <Select
+            id="landPlotSelect"
+            label={lang === 'en' ? 'Use a registered land plot (optional)' : 'Pilih dari lahan terdaftar (opsional)'}
+            options={landPlots.map((p) => ({ value: p.id, label: p.name }))}
+            placeholder={lang === 'en' ? '- Fill in manually -' : '- Isi manual -'}
+            value={selectedLandPlotId || ''}
+            onChange={(e) => handleLandPlotChange(e.target.value)}
+          />
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Select
@@ -482,5 +545,13 @@ export default function FarmerPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function FarmerPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center py-20"><Spinner size="lg" /></div>}>
+      <FarmerPageInner />
+    </Suspense>
   );
 }

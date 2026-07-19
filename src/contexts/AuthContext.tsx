@@ -221,9 +221,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       router.refresh();
       return {
         success: true,
-        redirectTo: nextUser.status === 'pending' || nextUser.status === 'rejected'
-          ? '/pending-verification'
-          : getDefaultDashboardPage(nextUser.role),
+        redirectTo: nextUser.status === 'deactivated'
+          ? '/account-deactivated'
+          : nextUser.status === 'pending' || nextUser.status === 'rejected'
+            ? '/pending-verification'
+            : getDefaultDashboardPage(nextUser.role),
       };
     } catch (err) {
       console.error('[AuthContext] Login exception:', err);

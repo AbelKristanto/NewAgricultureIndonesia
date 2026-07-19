@@ -12,7 +12,11 @@ export type NotificationType =
   | 'payment_succeeded'
   | 'payment_failed'
   | 'account_verification_approved'
-  | 'account_verification_rejected';
+  | 'account_verification_rejected'
+  | 'account_reactivated'
+  | 'community_reply'
+  | 'contract_proposed'
+  | 'contract_status_updated';
 
 export interface AppNotification {
   id: string;

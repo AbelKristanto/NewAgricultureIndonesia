@@ -4,6 +4,7 @@ import { getSystemPrompt } from '@/lib/prompts/system-prompt';
 import { buildFarmerPrompt } from '@/lib/prompts/farmer-prompt';
 import { FarmerInput, FarmerAnalysis } from '@/types/farmer';
 import { saveAnalysis } from '@/lib/db/analyses';
+import { getLandPlotById } from '@/lib/db/land-plots';
 import { createAdminClient } from '@/lib/supabase/admin';
 import {
   getRequestContext,
@@ -42,8 +43,21 @@ export async function POST(request: Request) {
 
   try {
     const body: FarmerInput = await request.json();
+
+    const supabase = createAdminClient();
+    let landPlot = null;
+    if (body.landPlotId) {
+      landPlot = await getLandPlotById(supabase, body.landPlotId);
+      if (!landPlot) {
+        return NextResponse.json({ success: false, error: 'Land plot not found' }, { status: 404 });
+      }
+      if (landPlot.farmer_id !== ctx.userId) {
+        return createForbiddenResponse('You can only use your own land plots');
+      }
+    }
+
     const systemPrompt = getSystemPrompt(body.lang);
-    const userPrompt = buildFarmerPrompt(body);
+    const userPrompt = buildFarmerPrompt(body, landPlot);
 
     let responseText: string;
     try {
@@ -65,8 +79,14 @@ export async function POST(request: Request) {
 
     // Persist to database using admin client
     try {
-      const supabase = createAdminClient();
-      await saveAnalysis(supabase, 'farmer_analyses', ctx.userId, body as unknown as Record<string, unknown>, resultData as unknown as Record<string, unknown>);
+      await saveAnalysis(
+        supabase,
+        'farmer_analyses',
+        ctx.userId,
+        body as unknown as Record<string, unknown>,
+        resultData as unknown as Record<string, unknown>,
+        { land_plot_id: landPlot?.id ?? null }
+      );
     } catch (dbError) {
       console.error('Failed to save farmer analysis:', dbError);
     }

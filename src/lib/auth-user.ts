@@ -15,7 +15,7 @@ export function resolveUserRole(profileRole: unknown, metadataRole: unknown): Us
 }
 
 function resolveProfileStatus(status: unknown): ProfileStatus {
-  return status === 'pending' || status === 'rejected' ? status : 'approved';
+  return status === 'pending' || status === 'rejected' || status === 'deactivated' ? status : 'approved';
 }
 
 export function buildAuthenticatedUser(

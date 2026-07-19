@@ -15,6 +15,25 @@ export async function generateContent(systemPrompt: string, userPrompt: string):
   return result.response.text();
 }
 
+export async function generateContentWithImage(
+  systemPrompt: string,
+  userPrompt: string,
+  imageBase64: string,
+  mimeType: string
+): Promise<string> {
+  const model = getModel();
+  const result = await model.generateContent({
+    contents: [
+      {
+        role: 'user',
+        parts: [{ text: userPrompt }, { inlineData: { data: imageBase64, mimeType } }],
+      },
+    ],
+    systemInstruction: { role: 'user', parts: [{ text: systemPrompt }] },
+  });
+  return result.response.text();
+}
+
 export async function generateContentStream(systemPrompt: string, messages: { role: string; content: string }[]) {
   const model = getModel();
   const contents = messages.map((m) => ({

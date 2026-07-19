@@ -90,6 +90,12 @@ export const QUALITY_GRADES = [
   { value: 'standard', labelEn: 'Standard', labelId: 'Standar' },
 ];
 
+export const LAND_PLOT_STATUSES = [
+  { value: 'active', labelEn: 'Actively planted', labelId: 'Aktif ditanami' },
+  { value: 'fallow', labelEn: 'Fallow', labelId: 'Bera / kosong' },
+  { value: 'harvested', labelEn: 'Recently harvested', labelId: 'Baru dipanen' },
+];
+
 export const TIMELINE_OPTIONS = [
   { value: '1-season', labelEn: '1 Planting Season', labelId: '1 Musim Tanam' },
   { value: '6-months', labelEn: '6 Months', labelId: '6 Bulan' },

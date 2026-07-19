@@ -7,7 +7,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useRole } from '@/contexts/RoleContext';
 import { getPermissions } from '@/lib/rbac';
 import Logo from '@/components/brand/Logo';
-import { Home, Wheat, ShoppingCart, Building2, MessageSquare, Handshake, CloudSun, FileSignature, FlaskConical, Menu, X, Route } from 'lucide-react';
+import { Home, Wheat, ShoppingCart, Building2, MessageSquare, Handshake, CloudSun, FileSignature, FlaskConical, Menu, X, Route, Map, Sprout, History, CalendarDays, Wallet, Clock, Bell, User, Settings, LifeBuoy, Users, Warehouse, ScrollText, Leaf, Globe2, TrendingUp, ShieldAlert, Camera, Globe } from 'lucide-react';
 import clsx from 'clsx';
 
 const primaryNav = [
@@ -21,9 +21,28 @@ const primaryNav = [
 const secondaryNav = [
   { href: '/dashboard/matching', icon: Handshake, labelKey: 'nav.matching' },
   { href: '/dashboard/farmer-operations', icon: Route, labelKey: 'nav.farmerOperations' },
+  { href: '/dashboard/land-plots', icon: Map, labelKey: 'nav.landPlots' },
+  { href: '/dashboard/monitoring', icon: Sprout, labelKey: 'nav.monitoring' },
+  { href: '/dashboard/production-history', icon: History, labelKey: 'nav.productionHistory' },
+  { href: '/dashboard/calendar', icon: CalendarDays, labelKey: 'nav.calendar' },
+  { href: '/dashboard/financial', icon: Wallet, labelKey: 'nav.financial' },
+  { href: '/dashboard/activity', icon: Clock, labelKey: 'nav.activity' },
   { href: '/dashboard/weather', icon: CloudSun, labelKey: 'nav.weather' },
   { href: '/dashboard/transactions', icon: FileSignature, labelKey: 'nav.transactions' },
   { href: '/dashboard/simulation', icon: FlaskConical, labelKey: 'nav.simulation' },
+  { href: '/dashboard/community', icon: Users, labelKey: 'nav.community' },
+  { href: '/dashboard/warehouse', icon: Warehouse, labelKey: 'nav.warehouse' },
+  { href: '/dashboard/contracts', icon: ScrollText, labelKey: 'nav.contracts' },
+  { href: '/dashboard/sustainability', icon: Leaf, labelKey: 'nav.sustainability' },
+  { href: '/dashboard/esg-report', icon: Globe2, labelKey: 'nav.esgReport' },
+  { href: '/dashboard/market-intelligence', icon: TrendingUp, labelKey: 'nav.marketIntelligence' },
+  { href: '/dashboard/pest-alert', icon: ShieldAlert, labelKey: 'nav.pestAlert' },
+  { href: '/dashboard/plant-scan', icon: Camera, labelKey: 'nav.plantScan' },
+  { href: '/dashboard/platform-overview', icon: Globe, labelKey: 'nav.platformOverview' },
+  { href: '/dashboard/notifications', icon: Bell, labelKey: 'nav.notifications' },
+  { href: '/dashboard/profile', icon: User, labelKey: 'nav.profile' },
+  { href: '/dashboard/settings', icon: Settings, labelKey: 'nav.settings' },
+  { href: '/dashboard/help', icon: LifeBuoy, labelKey: 'nav.help' },
 ];
 
 export default function MobileNav() {

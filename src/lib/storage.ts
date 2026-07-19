@@ -5,6 +5,9 @@ const LOGISTICS_PHOTOS_BUCKET = 'logistics-photos';
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024; // 5MB
 
+const CROP_MONITORING_PHOTOS_BUCKET = 'crop-monitoring-photos';
+const PLANT_SCAN_PHOTOS_BUCKET = 'plant-scan-photos';
+
 const VERIFICATION_DOCUMENTS_BUCKET = 'verification-documents';
 const ALLOWED_DOCUMENT_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
 const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024; // 10MB
@@ -95,6 +98,81 @@ export async function uploadLogisticsPhoto(
 
   if (error) throw error;
   return path;
+}
+
+/**
+ * Validates and uploads a crop monitoring photo, returning its storage
+ * path. Called server-side only, via the admin client, after the
+ * caller's ownership of the land plot has already been checked.
+ */
+export async function uploadCropMonitoringPhoto(
+  supabase: SupabaseClient,
+  landPlotId: string,
+  file: File
+): Promise<string> {
+  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+    throw new InvalidUploadError('Only JPEG, PNG, or WEBP images are allowed');
+  }
+  if (file.size > MAX_PHOTO_BYTES) {
+    throw new InvalidUploadError('Photo must be 5MB or smaller');
+  }
+
+  const path = `${landPlotId}/${Date.now()}-${sanitizeFilename(file.name)}`;
+  const arrayBuffer = await file.arrayBuffer();
+
+  const { error } = await supabase.storage
+    .from(CROP_MONITORING_PHOTOS_BUCKET)
+    .upload(path, arrayBuffer, { contentType: file.type });
+
+  if (error) throw error;
+  return path;
+}
+
+export async function getSignedCropPhotoUrl(
+  supabase: SupabaseClient,
+  path: string
+): Promise<string | null> {
+  return createSignedUrl(supabase, CROP_MONITORING_PHOTOS_BUCKET, path);
+}
+
+/**
+ * Validates and uploads a plant scan photo, returning its storage path and
+ * the raw bytes/mime type so the caller can pass them straight to Gemini
+ * without a second read of the file.
+ */
+export async function uploadPlantScanPhoto(
+  supabase: SupabaseClient,
+  farmerId: string,
+  file: File
+): Promise<{ path: string; base64: string; mimeType: string }> {
+  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+    throw new InvalidUploadError('Only JPEG, PNG, or WEBP images are allowed');
+  }
+  if (file.size > MAX_PHOTO_BYTES) {
+    throw new InvalidUploadError('Photo must be 5MB or smaller');
+  }
+
+  const path = `${farmerId}/${Date.now()}-${sanitizeFilename(file.name)}`;
+  const arrayBuffer = await file.arrayBuffer();
+
+  const { error } = await supabase.storage
+    .from(PLANT_SCAN_PHOTOS_BUCKET)
+    .upload(path, arrayBuffer, { contentType: file.type });
+
+  if (error) throw error;
+
+  return {
+    path,
+    base64: Buffer.from(arrayBuffer).toString('base64'),
+    mimeType: file.type,
+  };
+}
+
+export async function getSignedPlantScanPhotoUrl(
+  supabase: SupabaseClient,
+  path: string
+): Promise<string | null> {
+  return createSignedUrl(supabase, PLANT_SCAN_PHOTOS_BUCKET, path);
 }
 
 /**

@@ -1,6 +1,6 @@
 export type UserRole = 'farmer' | 'buyer' | 'supplier' | 'logistics' | 'finance' | 'government' | 'admin';
 
-export type ProfileStatus = 'pending' | 'approved' | 'rejected';
+export type ProfileStatus = 'pending' | 'approved' | 'rejected' | 'deactivated';
 
 export interface User {
   id: string;

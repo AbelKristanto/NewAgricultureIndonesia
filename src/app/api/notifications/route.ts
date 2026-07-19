@@ -13,9 +13,13 @@ export async function GET(request: Request) {
   }
 
   try {
+    const { searchParams } = new URL(request.url);
+    const limitParam = Number(searchParams.get('limit'));
+    const limit = Number.isFinite(limitParam) && limitParam > 0 ? Math.min(limitParam, 200) : 20;
+
     const supabase = createAdminClient();
     const [notifications, unreadCount] = await Promise.all([
-      getNotifications(supabase, ctx.userId),
+      getNotifications(supabase, ctx.userId, limit),
       getUnreadCount(supabase, ctx.userId),
     ]);
     return NextResponse.json({ success: true, data: { notifications, unreadCount } });

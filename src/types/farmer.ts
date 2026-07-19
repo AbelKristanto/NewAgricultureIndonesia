@@ -10,6 +10,7 @@ export interface FarmerInput {
   timeline: string;
   notes: string;
   lang: 'en' | 'id';
+  landPlotId?: string | null;
 }
 
 export interface CropRecommendation {
