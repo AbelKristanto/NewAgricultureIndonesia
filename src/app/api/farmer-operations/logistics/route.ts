@@ -4,6 +4,7 @@ import { createLogisticsPlan, getLogisticsPlanByTransactionId } from '@/lib/db/f
 import { enrichCheckpointsWithSignedUrls } from '@/lib/storage';
 import { getTransactionById } from '@/lib/db/transactions';
 import { canAccessTransaction, canManageLogisticsForTransaction } from '@/lib/transaction-negotiation';
+import { isWithinIndonesia } from '@/lib/geo';
 import {
   createForbiddenResponse,
   createUnauthorizedResponse,
@@ -73,6 +74,13 @@ export async function POST(request: Request) {
     ) {
       return NextResponse.json(
         { success: false, error: 'transactionId, providerName, pickup and destination address/coordinates are required' },
+        { status: 400 }
+      );
+    }
+
+    if (!isWithinIndonesia(body.pickupLat, body.pickupLng) || !isWithinIndonesia(body.destinationLat, body.destinationLng)) {
+      return NextResponse.json(
+        { success: false, error: 'Pickup and destination coordinates must be within Indonesia' },
         { status: 400 }
       );
     }

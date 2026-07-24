@@ -4,6 +4,7 @@ import { buildAppendedCheckpoints, updateLogisticsPlan } from '@/lib/db/farmer-o
 import { getTransactionById } from '@/lib/db/transactions';
 import { canUpdateLogisticsForTransaction } from '@/lib/transaction-negotiation';
 import { InvalidUploadError, enrichCheckpointsWithSignedUrls, uploadLogisticsPhoto } from '@/lib/storage';
+import { isWithinIndonesia } from '@/lib/geo';
 import { FarmerLogisticsPlan } from '@/types/farmer-operations';
 import {
   createForbiddenResponse,
@@ -56,6 +57,9 @@ export async function POST(
     const lngNum = Number(lng);
     if (Number.isNaN(latNum) || Number.isNaN(lngNum)) {
       return NextResponse.json({ success: false, error: 'lat and lng must be numbers' }, { status: 400 });
+    }
+    if (!isWithinIndonesia(latNum, lngNum)) {
+      return NextResponse.json({ success: false, error: 'Checkpoint coordinates must be within Indonesia' }, { status: 400 });
     }
 
     let photoPath: string | null = null;

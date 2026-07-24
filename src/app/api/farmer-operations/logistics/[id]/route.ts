@@ -4,6 +4,7 @@ import { buildAppendedCheckpoints, updateLogisticsPlan } from '@/lib/db/farmer-o
 import { enrichCheckpointsWithSignedUrls } from '@/lib/storage';
 import { getTransactionById } from '@/lib/db/transactions';
 import { canUpdateLogisticsForTransaction } from '@/lib/transaction-negotiation';
+import { isWithinIndonesia } from '@/lib/geo';
 import { FarmerLogisticsPlan } from '@/types/farmer-operations';
 import {
   createForbiddenResponse,
@@ -61,11 +62,21 @@ export async function PATCH(
       }
       updates.status = body.status;
     }
-    if (body.currentLat !== undefined) updates.current_lat = body.currentLat;
-    if (body.currentLng !== undefined) updates.current_lng = body.currentLng;
+    if (body.currentLat !== undefined || body.currentLng !== undefined) {
+      const lat = body.currentLat ?? plan.current_lat ?? plan.pickup_lat;
+      const lng = body.currentLng ?? plan.current_lng ?? plan.pickup_lng;
+      if (!isWithinIndonesia(lat, lng)) {
+        return NextResponse.json({ success: false, error: 'Coordinates must be within Indonesia' }, { status: 400 });
+      }
+      updates.current_lat = lat;
+      updates.current_lng = lng;
+    }
     if (body.estimatedArrival !== undefined) updates.estimated_arrival = body.estimatedArrival;
 
     if (body.appendCheckpoint) {
+      if (!isWithinIndonesia(body.appendCheckpoint.lat, body.appendCheckpoint.lng)) {
+        return NextResponse.json({ success: false, error: 'Checkpoint coordinates must be within Indonesia' }, { status: 400 });
+      }
       updates.checkpoints = buildAppendedCheckpoints(plan.checkpoints, body.appendCheckpoint);
     }
 

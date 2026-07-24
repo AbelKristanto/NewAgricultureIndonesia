@@ -9,6 +9,7 @@ import Input from '@/components/ui/Input';
 import Spinner from '@/components/ui/Spinner';
 import Badge from '@/components/ui/Badge';
 import DeliveryMap from '@/components/shared/DeliveryMap';
+import { INDONESIA_BOUNDS, isWithinIndonesia } from '@/lib/geo';
 import { Truck } from 'lucide-react';
 
 const STATUS_OPTIONS: Array<{ value: string; labelEn: string; labelId: string }> = [
@@ -78,8 +79,22 @@ export default function LogisticsPlanPanel({ transaction, canCreate, canUpdate }
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
     setError('');
+
+    const pickupLat = Number(createForm.pickupLat);
+    const pickupLng = Number(createForm.pickupLng);
+    const destinationLat = Number(createForm.destinationLat);
+    const destinationLng = Number(createForm.destinationLng);
+    if (!isWithinIndonesia(pickupLat, pickupLng) || !isWithinIndonesia(destinationLat, destinationLng)) {
+      setError(
+        lang === 'en'
+          ? `Coordinates must be within Indonesia (lat ${INDONESIA_BOUNDS.minLat} to ${INDONESIA_BOUNDS.maxLat}, lng ${INDONESIA_BOUNDS.minLng} to ${INDONESIA_BOUNDS.maxLng}).`
+          : `Koordinat harus berada di wilayah Indonesia (lat ${INDONESIA_BOUNDS.minLat} s.d. ${INDONESIA_BOUNDS.maxLat}, lng ${INDONESIA_BOUNDS.minLng} s.d. ${INDONESIA_BOUNDS.maxLng}).`
+      );
+      return;
+    }
+
+    setSaving(true);
     try {
       const res = await fetch('/api/farmer-operations/logistics', {
         method: 'POST',
@@ -173,6 +188,14 @@ export default function LogisticsPlanPanel({ transaction, canCreate, canUpdate }
     const lat = Number(positionForm.lat);
     const lng = Number(positionForm.lng);
     if (Number.isNaN(lat) || Number.isNaN(lng)) return;
+    if (!isWithinIndonesia(lat, lng)) {
+      setError(
+        lang === 'en'
+          ? `Coordinates must be within Indonesia (lat ${INDONESIA_BOUNDS.minLat} to ${INDONESIA_BOUNDS.maxLat}, lng ${INDONESIA_BOUNDS.minLng} to ${INDONESIA_BOUNDS.maxLng}).`
+          : `Koordinat harus berada di wilayah Indonesia (lat ${INDONESIA_BOUNDS.minLat} s.d. ${INDONESIA_BOUNDS.maxLat}, lng ${INDONESIA_BOUNDS.minLng} s.d. ${INDONESIA_BOUNDS.maxLng}).`
+      );
+      return;
+    }
 
     const label = positionForm.checkpointLabel.trim();
     if (label) {
@@ -235,6 +258,8 @@ export default function LogisticsPlanPanel({ transaction, canCreate, canUpdate }
               label="Lat"
               type="number"
               step="any"
+              min={INDONESIA_BOUNDS.minLat}
+              max={INDONESIA_BOUNDS.maxLat}
               value={createForm.pickupLat}
               onChange={(e) => setCreateForm({ ...createForm, pickupLat: e.target.value })}
               required
@@ -244,6 +269,8 @@ export default function LogisticsPlanPanel({ transaction, canCreate, canUpdate }
               label="Lng"
               type="number"
               step="any"
+              min={INDONESIA_BOUNDS.minLng}
+              max={INDONESIA_BOUNDS.maxLng}
               value={createForm.pickupLng}
               onChange={(e) => setCreateForm({ ...createForm, pickupLng: e.target.value })}
               required
@@ -262,6 +289,8 @@ export default function LogisticsPlanPanel({ transaction, canCreate, canUpdate }
               label="Lat"
               type="number"
               step="any"
+              min={INDONESIA_BOUNDS.minLat}
+              max={INDONESIA_BOUNDS.maxLat}
               value={createForm.destinationLat}
               onChange={(e) => setCreateForm({ ...createForm, destinationLat: e.target.value })}
               required
@@ -271,6 +300,8 @@ export default function LogisticsPlanPanel({ transaction, canCreate, canUpdate }
               label="Lng"
               type="number"
               step="any"
+              min={INDONESIA_BOUNDS.minLng}
+              max={INDONESIA_BOUNDS.maxLng}
               value={createForm.destinationLng}
               onChange={(e) => setCreateForm({ ...createForm, destinationLng: e.target.value })}
               required
@@ -350,6 +381,8 @@ export default function LogisticsPlanPanel({ transaction, canCreate, canUpdate }
                   label="Lat"
                   type="number"
                   step="any"
+                  min={INDONESIA_BOUNDS.minLat}
+                  max={INDONESIA_BOUNDS.maxLat}
                   value={positionForm.lat}
                   onChange={(e) => setPositionForm({ ...positionForm, lat: e.target.value })}
                 />
@@ -358,6 +391,8 @@ export default function LogisticsPlanPanel({ transaction, canCreate, canUpdate }
                   label="Lng"
                   type="number"
                   step="any"
+                  min={INDONESIA_BOUNDS.minLng}
+                  max={INDONESIA_BOUNDS.maxLng}
                   value={positionForm.lng}
                   onChange={(e) => setPositionForm({ ...positionForm, lng: e.target.value })}
                 />
