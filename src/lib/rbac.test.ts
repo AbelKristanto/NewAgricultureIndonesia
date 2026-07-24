@@ -39,13 +39,13 @@ describe('RBAC Permission Configuration', () => {
 
     it('should have correct pages', () => {
       expect(ROLE_PERMISSIONS.farmer.pages).toEqual([
-        '/dashboard', '/dashboard/farmer', '/dashboard/chat', '/dashboard/weather', '/dashboard/matching', '/dashboard/farmer-operations', '/dashboard/land-plots', '/dashboard/monitoring', '/dashboard/production-history', '/dashboard/calendar', '/dashboard/financial', '/dashboard/activity', '/dashboard/transactions', '/dashboard/notifications', '/dashboard/profile', '/dashboard/settings', '/dashboard/help', '/dashboard/community', '/dashboard/contracts', '/dashboard/sustainability', '/dashboard/market-intelligence', '/dashboard/pest-alert', '/dashboard/plant-scan',
+        '/dashboard', '/dashboard/farmer', '/dashboard/chat', '/dashboard/weather', '/dashboard/matching', '/dashboard/farmer-operations', '/dashboard/land-plots', '/dashboard/monitoring', '/dashboard/production-history', '/dashboard/calendar', '/dashboard/financial', '/dashboard/activity', '/dashboard/transactions', '/dashboard/notifications', '/dashboard/profile', '/dashboard/settings', '/dashboard/help', '/dashboard/community', '/dashboard/contracts', '/dashboard/sustainability', '/dashboard/market-intelligence', '/dashboard/pest-alert', '/dashboard/plant-scan', '/dashboard/subsidies', '/dashboard/input-planning',
       ]);
     });
 
     it('should have correct API routes', () => {
       expect(ROLE_PERMISSIONS.farmer.apiRoutes).toEqual([
-        '/api/ai/farmer', '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/ai/calendar', '/api/transactions', '/api/farmer-operations', '/api/listings', '/api/notifications', '/api/payments', '/api/land-plots', '/api/crop-monitoring', '/api/harvest-records', '/api/community', '/api/contracts', '/api/sustainability', '/api/ai/market-intelligence', '/api/ai/pest-alert', '/api/plant-scans', '/api/ai/daily-insight', '/api/ai/performance-analysis',
+        '/api/ai/farmer', '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/ai/calendar', '/api/transactions', '/api/farmer-operations', '/api/listings', '/api/notifications', '/api/payments', '/api/land-plots', '/api/crop-monitoring', '/api/harvest-records', '/api/community', '/api/contracts', '/api/sustainability', '/api/ai/market-intelligence', '/api/ai/pest-alert', '/api/plant-scans', '/api/ai/daily-insight', '/api/ai/performance-analysis', '/api/subsidies', '/api/input-planning',
       ]);
     });
 

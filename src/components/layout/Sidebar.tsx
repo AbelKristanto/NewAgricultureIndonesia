@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRole } from '@/contexts/RoleContext';
 import { getPermissions } from '@/lib/rbac';
 import Logo from '@/components/brand/Logo';
-import { Home, Wheat, ShoppingCart, Building2, MessageSquare, Handshake, CloudSun, FileSignature, FlaskConical, ChevronLeft, ChevronRight, Route, Map, Sprout, History, CalendarDays, Wallet, Clock, Bell, User, Settings, LifeBuoy, Users, Warehouse, ScrollText, Leaf, Globe2, TrendingUp, ShieldAlert, Camera, Globe, Landmark } from 'lucide-react';
+import { Home, Wheat, ShoppingCart, Building2, MessageSquare, Handshake, CloudSun, FileSignature, FlaskConical, ChevronLeft, ChevronRight, Route, Map, Sprout, History, CalendarDays, Wallet, Clock, Bell, User, Settings, LifeBuoy, Users, Warehouse, ScrollText, Leaf, Globe2, TrendingUp, ShieldAlert, Camera, Globe, Landmark, HandCoins, ClipboardList } from 'lucide-react';
 import clsx from 'clsx';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -41,6 +41,8 @@ const secondaryNav = [
   { href: '/dashboard/market-intelligence', icon: TrendingUp, labelKey: 'nav.marketIntelligence' },
   { href: '/dashboard/pest-alert', icon: ShieldAlert, labelKey: 'nav.pestAlert' },
   { href: '/dashboard/plant-scan', icon: Camera, labelKey: 'nav.plantScan' },
+  { href: '/dashboard/subsidies', icon: HandCoins, labelKey: 'nav.subsidies' },
+  { href: '/dashboard/input-planning', icon: ClipboardList, labelKey: 'nav.inputPlanning' },
   { href: '/dashboard/platform-overview', icon: Globe, labelKey: 'nav.platformOverview' },
   { href: '/dashboard/institutional-financial', icon: Landmark, labelKey: 'nav.institutionalFinancial' },
   { href: '/dashboard/notifications', icon: Bell, labelKey: 'nav.notifications' },

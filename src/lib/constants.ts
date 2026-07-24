@@ -96,6 +96,36 @@ export const LAND_PLOT_STATUSES = [
   { value: 'harvested', labelEn: 'Recently harvested', labelId: 'Baru dipanen' },
 ];
 
+export const SUBSIDY_TYPES = [
+  { value: 'cash', labelEn: 'Cash assistance', labelId: 'Bantuan tunai' },
+  { value: 'input', labelEn: 'Input subsidy', labelId: 'Subsidi sarana produksi' },
+  { value: 'equipment', labelEn: 'Equipment aid', labelId: 'Bantuan alat' },
+  { value: 'training', labelEn: 'Training program', labelId: 'Program pelatihan' },
+  { value: 'other', labelEn: 'Other', labelId: 'Lainnya' },
+];
+
+export const SUBSIDY_STATUSES = [
+  { value: 'planned', labelEn: 'Planned', labelId: 'Direncanakan' },
+  { value: 'applied', labelEn: 'Applied', labelId: 'Diajukan' },
+  { value: 'approved', labelEn: 'Approved', labelId: 'Disetujui' },
+  { value: 'rejected', labelEn: 'Rejected', labelId: 'Ditolak' },
+  { value: 'disbursed', labelEn: 'Disbursed', labelId: 'Dicairkan' },
+];
+
+export const INPUT_ITEM_TYPES = [
+  { value: 'seed', labelEn: 'Seed', labelId: 'Benih' },
+  { value: 'fertilizer', labelEn: 'Fertilizer', labelId: 'Pupuk' },
+  { value: 'pesticide', labelEn: 'Pesticide', labelId: 'Pestisida' },
+  { value: 'equipment', labelEn: 'Equipment', labelId: 'Alat' },
+  { value: 'other', labelEn: 'Other', labelId: 'Lainnya' },
+];
+
+export const INPUT_PLAN_STATUSES = [
+  { value: 'planned', labelEn: 'Planned', labelId: 'Direncanakan' },
+  { value: 'purchased', labelEn: 'Purchased', labelId: 'Sudah dibeli' },
+  { value: 'used', labelEn: 'Used', labelId: 'Sudah dipakai' },
+];
+
 export const TIMELINE_OPTIONS = [
   { value: '1-season', labelEn: '1 Planting Season', labelId: '1 Musim Tanam' },
   { value: '6-months', labelEn: '6 Months', labelId: '6 Bulan' },

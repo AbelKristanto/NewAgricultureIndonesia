@@ -34,6 +34,8 @@ const id = {
     plantScan: 'Scan Tanaman Kamera',
     platformOverview: 'Ringkasan Platform',
     institutionalFinancial: 'Ringkasan Keuangan Institusi',
+    subsidies: 'Pelacakan Subsidi',
+    inputPlanning: 'Rencana Sarana Produksi',
   },
   login: {
     title: 'Masuk ke Serenagri AI',

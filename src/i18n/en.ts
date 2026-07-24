@@ -34,6 +34,8 @@ const en = {
     plantScan: 'Scan Plant Camera',
     platformOverview: 'Platform Overview',
     institutionalFinancial: 'Institutional Financial Summary',
+    subsidies: 'Subsidy Tracking',
+    inputPlanning: 'Input Planning',
   },
   login: {
     title: 'Sign In to Serenagri AI',
