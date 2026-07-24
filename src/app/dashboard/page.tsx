@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRole } from '@/contexts/RoleContext';
@@ -21,8 +21,86 @@ import {
   Route,
   CreditCard,
   MapPinned,
+  Sparkles,
 } from 'lucide-react';
 import Link from 'next/link';
+
+interface DailyInsight {
+  tip: string;
+  focusArea: string;
+  reasoning: string;
+}
+
+const FOCUS_AREA_LABEL: Record<string, { en: string; id: string }> = {
+  irrigation: { en: 'Irrigation', id: 'Irigasi' },
+  pest_prevention: { en: 'Pest prevention', id: 'Pencegahan hama' },
+  harvest_timing: { en: 'Harvest timing', id: 'Waktu panen' },
+  cost_management: { en: 'Cost management', id: 'Manajemen biaya' },
+  market_timing: { en: 'Market timing', id: 'Waktu jual' },
+  record_keeping: { en: 'Record keeping', id: 'Pencatatan' },
+  general: { en: 'General', id: 'Umum' },
+};
+
+function DailyInsightCard() {
+  const { lang } = useLanguage();
+  const [insight, setInsight] = useState<DailyInsight | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    fetch('/api/ai/daily-insight')
+      .then((r) => r.json())
+      .then((json) => {
+        if (!mounted) return;
+        if (json.success) setInsight(json.data);
+        else setError(true);
+      })
+      .catch(() => {
+        if (mounted) setError(true);
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  if (error) return null;
+
+  const focusLabel = insight ? FOCUS_AREA_LABEL[insight.focusArea] : null;
+
+  return (
+    <div className="rounded-xl border border-primary-100 bg-gradient-to-br from-primary-50 to-white p-4">
+      <div className="flex items-start gap-3">
+        <div className="h-9 w-9 shrink-0 rounded-lg bg-primary-100 text-primary-700 flex items-center justify-center">
+          <Sparkles className="h-4 w-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-gray-900">
+            {lang === 'en' ? "Today's Insight" : 'Insight Hari Ini'}
+          </p>
+          {loading ? (
+            <div className="mt-2 space-y-1.5">
+              <div className="h-3 w-3/4 bg-surface-200 rounded animate-pulse" />
+              <div className="h-3 w-1/2 bg-surface-200 rounded animate-pulse" />
+            </div>
+          ) : insight ? (
+            <>
+              <p className="mt-1 text-sm text-gray-700 leading-5">{insight.tip}</p>
+              {focusLabel && (
+                <span className="mt-2 inline-block text-xs font-medium text-primary-700 bg-primary-100 px-2 py-0.5 rounded-full">
+                  {lang === 'en' ? focusLabel.en : focusLabel.id}
+                </span>
+              )}
+            </>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /** Maps metric card keys to their translation keys, icons, and color classes */
 const METRIC_CARD_CONFIG: Record<
@@ -292,6 +370,8 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {role === 'farmer' && <DailyInsightCard />}
 
       {role === 'farmer' && (
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">

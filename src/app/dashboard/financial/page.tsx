@@ -7,7 +7,14 @@ import Spinner from '@/components/ui/Spinner';
 import { LandPlot } from '@/types/land-plots';
 import { HarvestRecord } from '@/types/harvest-records';
 import { Transaction } from '@/types/transaction';
-import { Wallet, AlertTriangle } from 'lucide-react';
+import { Wallet, AlertTriangle, Sparkles } from 'lucide-react';
+
+interface PerformanceAnalysisResult {
+  narrative: string;
+  strengths: string[];
+  concerns: string[];
+  recommendations: string[];
+}
 
 function formatCurrency(value: number, lang: string) {
   return new Intl.NumberFormat(lang === 'en' ? 'en-US' : 'id-ID', {
@@ -32,6 +39,9 @@ export default function FinancialDashboardPage() {
   const [landPlots, setLandPlots] = useState<LandPlot[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [analysis, setAnalysis] = useState<PerformanceAnalysisResult | null>(null);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [analysisError, setAnalysisError] = useState('');
 
   useEffect(() => {
     isMounted.current = true;
@@ -119,6 +129,31 @@ export default function FinancialDashboardPage() {
       }
     }
   });
+
+  const handleGenerateAnalysis = () => {
+    setAnalysisLoading(true);
+    setAnalysisError('');
+    fetch('/api/ai/performance-analysis', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        totalRevenue,
+        totalExpense,
+        estimatedProfit,
+        margin,
+        monthlyBuckets,
+        costFlags: Array.from(costFlagByCommodity.entries()).map(([commodity, deltaPercent]) => ({ commodity, deltaPercent })),
+        lang,
+      }),
+    })
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.success) setAnalysis(json.data);
+        else setAnalysisError(json.error || (lang === 'en' ? 'Failed to generate analysis' : 'Gagal membuat analisis'));
+      })
+      .catch(() => setAnalysisError(lang === 'en' ? 'Network error' : 'Gagal terhubung'))
+      .finally(() => setAnalysisLoading(false));
+  };
 
   if (loading) {
     return (
@@ -215,6 +250,72 @@ export default function FinancialDashboardPage() {
                 </div>
               );
             })}
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-xl border border-surface-200 bg-white p-4">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+            <Sparkles className="h-4 w-4 text-primary-600" />
+            {lang === 'en' ? 'AI Performance Analysis' : 'Analisis Performa AI'}
+          </h2>
+          <button
+            onClick={handleGenerateAnalysis}
+            disabled={analysisLoading}
+            className="rounded-lg bg-primary-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-800 disabled:opacity-50"
+          >
+            {analysisLoading
+              ? (lang === 'en' ? 'Analyzing...' : 'Menganalisis...')
+              : (lang === 'en' ? 'Generate Analysis' : 'Buat Analisis AI')}
+          </button>
+        </div>
+
+        {analysisError && (
+          <p className="mt-3 text-sm text-red-700">{analysisError}</p>
+        )}
+
+        {!analysis && !analysisError && !analysisLoading && (
+          <p className="mt-3 text-sm text-surface-400">
+            {lang === 'en'
+              ? 'Generate an AI narrative over the numbers above — strengths, concerns, and recommendations.'
+              : 'Buat narasi AI dari angka di atas — kekuatan, perhatian, dan rekomendasi.'}
+          </p>
+        )}
+
+        {analysis && (
+          <div className="mt-3 space-y-3">
+            <p className="text-sm text-gray-700 leading-5">{analysis.narrative}</p>
+            {analysis.strengths?.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-green-700">
+                  {lang === 'en' ? 'Strengths' : 'Kekuatan'}
+                </p>
+                <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-gray-700">
+                  {analysis.strengths.map((s, i) => <li key={i}>{s}</li>)}
+                </ul>
+              </div>
+            )}
+            {analysis.concerns?.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-orange-700">
+                  {lang === 'en' ? 'Concerns' : 'Perhatian'}
+                </p>
+                <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-gray-700">
+                  {analysis.concerns.map((s, i) => <li key={i}>{s}</li>)}
+                </ul>
+              </div>
+            )}
+            {analysis.recommendations?.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-primary-700">
+                  {lang === 'en' ? 'Recommendations' : 'Rekomendasi'}
+                </p>
+                <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-gray-700">
+                  {analysis.recommendations.map((s, i) => <li key={i}>{s}</li>)}
+                </ul>
+              </div>
+            )}
           </div>
         )}
       </div>

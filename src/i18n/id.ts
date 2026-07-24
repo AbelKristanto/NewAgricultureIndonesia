@@ -33,6 +33,7 @@ const id = {
     pestAlert: 'Peringatan Hama & Penyakit',
     plantScan: 'Scan Tanaman Kamera',
     platformOverview: 'Ringkasan Platform',
+    institutionalFinancial: 'Ringkasan Keuangan Institusi',
   },
   login: {
     title: 'Masuk ke Serenagri AI',
@@ -100,6 +101,7 @@ const id = {
     logistics: 'Penyedia Logistik',
     finance: 'Lembaga Keuangan',
     government: 'Instansi Pemerintah',
+    admin: 'Administrator',
   },
   dashboard: {
     welcome: 'Selamat datang kembali',

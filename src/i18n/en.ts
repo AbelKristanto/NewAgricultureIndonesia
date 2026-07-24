@@ -33,6 +33,7 @@ const en = {
     pestAlert: 'Disease & Pest Alert',
     plantScan: 'Scan Plant Camera',
     platformOverview: 'Platform Overview',
+    institutionalFinancial: 'Institutional Financial Summary',
   },
   login: {
     title: 'Sign In to Serenagri AI',
@@ -100,6 +101,7 @@ const en = {
     logistics: 'Logistics Provider',
     finance: 'Financial Institution',
     government: 'Government Agency',
+    admin: 'Administrator',
   },
   dashboard: {
     welcome: 'Welcome back',

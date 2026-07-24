@@ -45,7 +45,7 @@ describe('RBAC Permission Configuration', () => {
 
     it('should have correct API routes', () => {
       expect(ROLE_PERMISSIONS.farmer.apiRoutes).toEqual([
-        '/api/ai/farmer', '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/ai/calendar', '/api/transactions', '/api/farmer-operations', '/api/listings', '/api/notifications', '/api/payments', '/api/land-plots', '/api/crop-monitoring', '/api/harvest-records', '/api/community', '/api/contracts', '/api/sustainability', '/api/ai/market-intelligence', '/api/ai/pest-alert', '/api/plant-scans',
+        '/api/ai/farmer', '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/ai/calendar', '/api/transactions', '/api/farmer-operations', '/api/listings', '/api/notifications', '/api/payments', '/api/land-plots', '/api/crop-monitoring', '/api/harvest-records', '/api/community', '/api/contracts', '/api/sustainability', '/api/ai/market-intelligence', '/api/ai/pest-alert', '/api/plant-scans', '/api/ai/daily-insight', '/api/ai/performance-analysis',
       ]);
     });
 
@@ -95,13 +95,13 @@ describe('RBAC Permission Configuration', () => {
 
     it('should have correct pages', () => {
       expect(ROLE_PERMISSIONS.government.pages).toEqual([
-        '/dashboard', '/dashboard/farmer', '/dashboard/buyer', '/dashboard/policy', '/dashboard/chat', '/dashboard/matching', '/dashboard/weather', '/dashboard/transactions', '/dashboard/simulation', '/dashboard/activity', '/dashboard/notifications', '/dashboard/profile', '/dashboard/settings', '/dashboard/help', '/dashboard/sustainability', '/dashboard/esg-report', '/dashboard/market-intelligence', '/dashboard/pest-alert', '/dashboard/platform-overview',
+        '/dashboard', '/dashboard/farmer', '/dashboard/buyer', '/dashboard/policy', '/dashboard/chat', '/dashboard/matching', '/dashboard/weather', '/dashboard/transactions', '/dashboard/simulation', '/dashboard/activity', '/dashboard/notifications', '/dashboard/profile', '/dashboard/settings', '/dashboard/help', '/dashboard/sustainability', '/dashboard/esg-report', '/dashboard/market-intelligence', '/dashboard/pest-alert', '/dashboard/platform-overview', '/dashboard/institutional-financial',
       ]);
     });
 
     it('should have correct API routes', () => {
       expect(ROLE_PERMISSIONS.government.apiRoutes).toEqual([
-        '/api/ai/farmer', '/api/ai/buyer', '/api/ai/policy', '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions', '/api/admin/simulation', '/api/listings', '/api/notifications', '/api/account', '/api/sustainability', '/api/ai/esg-report', '/api/ai/market-intelligence', '/api/ai/pest-alert', '/api/platform-overview',
+        '/api/ai/farmer', '/api/ai/buyer', '/api/ai/policy', '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions', '/api/admin/simulation', '/api/listings', '/api/notifications', '/api/account', '/api/sustainability', '/api/ai/esg-report', '/api/ai/market-intelligence', '/api/ai/pest-alert', '/api/platform-overview', '/api/institutional-financials', '/api/ai/regional-analytics',
       ]);
     });
 
@@ -179,13 +179,13 @@ describe('RBAC Permission Configuration', () => {
 
     it('should have correct pages', () => {
       expect(ROLE_PERMISSIONS.finance.pages).toEqual([
-        '/dashboard', '/dashboard/policy', '/dashboard/matching', '/dashboard/transactions', '/dashboard/chat', '/dashboard/weather', '/dashboard/farmer-operations', '/dashboard/activity', '/dashboard/notifications', '/dashboard/profile', '/dashboard/settings', '/dashboard/help', '/dashboard/sustainability', '/dashboard/esg-report',
+        '/dashboard', '/dashboard/policy', '/dashboard/matching', '/dashboard/transactions', '/dashboard/chat', '/dashboard/weather', '/dashboard/farmer-operations', '/dashboard/activity', '/dashboard/notifications', '/dashboard/profile', '/dashboard/settings', '/dashboard/help', '/dashboard/sustainability', '/dashboard/esg-report', '/dashboard/institutional-financial', '/dashboard/market-intelligence',
       ]);
     });
 
     it('should have correct API routes', () => {
       expect(ROLE_PERMISSIONS.finance.apiRoutes).toEqual([
-        '/api/ai/policy', '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions', '/api/listings', '/api/notifications', '/api/farmer-operations', '/api/account', '/api/sustainability', '/api/ai/esg-report',
+        '/api/ai/policy', '/api/ai/chat', '/api/ai/matching', '/api/ai/weather', '/api/transactions', '/api/listings', '/api/notifications', '/api/farmer-operations', '/api/account', '/api/sustainability', '/api/ai/esg-report', '/api/institutional-financials', '/api/ai/market-intelligence',
       ]);
     });
 
@@ -210,7 +210,7 @@ describe('RBAC Permission Configuration', () => {
     });
 
     it('should have the expected API routes', () => {
-      expect(ROLE_PERMISSIONS.admin.apiRoutes).toEqual(['/api/admin-panel', '/api/ai/esg-report', '/api/ai/market-intelligence']);
+      expect(ROLE_PERMISSIONS.admin.apiRoutes).toEqual(['/api/admin-panel', '/api/ai/esg-report', '/api/ai/market-intelligence', '/api/ai/regional-analytics', '/api/notifications']);
     });
 
     it('should not be able to reach dashboard pages', () => {

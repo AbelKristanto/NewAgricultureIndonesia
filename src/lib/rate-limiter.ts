@@ -40,6 +40,9 @@ export const ENDPOINT_CATEGORY_MAP: Record<string, string> = {
   '/api/ai/market-intelligence': 'ai_analysis',
   '/api/ai/pest-alert': 'ai_analysis',
   '/api/plant-scans': 'ai_analysis',
+  '/api/ai/daily-insight': 'ai_analysis',
+  '/api/ai/performance-analysis': 'ai_analysis',
+  '/api/ai/regional-analytics': 'ai_analysis',
   '/api/ai/chat': 'chat',
 };
 

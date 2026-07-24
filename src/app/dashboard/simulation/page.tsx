@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import Spinner from '@/components/ui/Spinner';
 import Badge from '@/components/ui/Badge';
-import { Users, Wheat, ShoppingCart, Building2, Handshake, CloudSun, FileSignature, ChevronDown, ChevronUp } from 'lucide-react';
+import { Users, Wheat, ShoppingCart, Building2, Handshake, CloudSun, FileSignature, ChevronDown, ChevronUp, MapPinned } from 'lucide-react';
+import RegionalAnalyticsPanel from '@/components/shared/RegionalAnalyticsPanel';
 
 interface SimulationData {
   profiles: Array<{ id: string; email: string; full_name: string; role: string; province: string }>;
@@ -50,7 +51,7 @@ function CollapsibleSection({ title, icon, count, children, defaultOpen = false 
 }
 
 export default function SimulationPage() {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const isMounted = useRef(true);
   const [data, setData] = useState<SimulationData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -167,6 +168,15 @@ export default function SimulationPage() {
           </div>
         ))}
       </div>
+
+      {/* AI Regional Analytics */}
+      <CollapsibleSection
+        title={lang === 'en' ? 'AI Regional Analytics' : 'Analitik Regional AI'}
+        icon={<MapPinned className="h-5 w-5 text-primary-600" />}
+        count={0}
+      >
+        <RegionalAnalyticsPanel />
+      </CollapsibleSection>
 
       {/* Users */}
       <CollapsibleSection

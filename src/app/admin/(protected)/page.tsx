@@ -3,9 +3,14 @@
 import { useState, useEffect, useRef, useCallback, Fragment } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useRouter } from 'next/navigation';
 import { VALID_USER_ROLES } from '@/lib/rbac';
 import { TRANSACTION_STATUSES, COMMODITIES, INDONESIAN_PROVINCES } from '@/lib/constants';
 import { Transaction } from '@/types/transaction';
+import { AppNotification } from '@/types/notification';
+import { formatTimeAgo } from '@/lib/time-format';
+import { createClient } from '@/lib/supabase/client';
+import LanguageToggle from '@/components/shared/LanguageToggle';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
@@ -13,6 +18,7 @@ import Spinner from '@/components/ui/Spinner';
 import Badge from '@/components/ui/Badge';
 import MarketIntelligencePanel from '@/components/shared/MarketIntelligencePanel';
 import EsgReportPanel from '@/components/shared/EsgReportPanel';
+import RegionalAnalyticsPanel from '@/components/shared/RegionalAnalyticsPanel';
 import {
   Shield,
   Users,
@@ -29,6 +35,15 @@ import {
   BrainCircuit,
   TrendingUp,
   Leaf,
+  MapPinned,
+  Bell,
+  CheckCheck,
+  User as UserIcon,
+  Mail,
+  Settings,
+  Languages,
+  KeyRound,
+  Clock,
 } from 'lucide-react';
 
 interface AdminAccount {
@@ -84,12 +99,14 @@ function Section({ title, icon, count, children, defaultOpen = false, action }: 
 
 const EMPTY_ACCOUNT_FORM = { email: '', password: '', username: '', role: 'farmer', institutionName: '' };
 
-type TabId = 'users' | 'transactions' | 'marketplace' | 'supply-chain' | 'ai-monitoring' | 'market-intelligence' | 'esg';
+type TabId = 'users' | 'transactions' | 'marketplace' | 'supply-chain' | 'ai-monitoring' | 'market-intelligence' | 'esg' | 'regional-analytics' | 'activity' | 'notifications' | 'profile' | 'settings';
 
 export default function AdminPage() {
   const { user, logout } = useAuth();
-  const { lang } = useLanguage();
+  const { lang, t } = useLanguage();
+  const router = useRouter();
   const isMounted = useRef(true);
+  const supabaseRef = useRef(createClient());
 
   const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
     { id: 'users', label: lang === 'en' ? 'User Monitoring' : 'Monitoring User', icon: <Users className="h-4 w-4" /> },
@@ -99,6 +116,11 @@ export default function AdminPage() {
     { id: 'ai-monitoring', label: lang === 'en' ? 'AI Monitoring' : 'Monitoring AI', icon: <BrainCircuit className="h-4 w-4" /> },
     { id: 'market-intelligence', label: lang === 'en' ? 'AI Market Intelligence' : 'AI Market Intelligence', icon: <TrendingUp className="h-4 w-4" /> },
     { id: 'esg', label: lang === 'en' ? 'Carbon & ESG' : 'Carbon & ESG', icon: <Leaf className="h-4 w-4" /> },
+    { id: 'regional-analytics', label: lang === 'en' ? 'Regional Analytics' : 'Analitik Regional', icon: <MapPinned className="h-4 w-4" /> },
+    { id: 'activity', label: lang === 'en' ? 'Activity Timeline' : 'Riwayat Aktivitas', icon: <Clock className="h-4 w-4" /> },
+    { id: 'notifications', label: lang === 'en' ? 'Notifications' : 'Notifikasi', icon: <Bell className="h-4 w-4" /> },
+    { id: 'profile', label: lang === 'en' ? 'Profile' : 'Profil', icon: <UserIcon className="h-4 w-4" /> },
+    { id: 'settings', label: lang === 'en' ? 'Settings' : 'Pengaturan', icon: <Settings className="h-4 w-4" /> },
   ];
   const [activeTab, setActiveTab] = useState<TabId>('users');
 
@@ -123,6 +145,20 @@ export default function AdminPage() {
   const [expandedTxId, setExpandedTxId] = useState<string | null>(null);
   const [deletingTxId, setDeletingTxId] = useState<string | null>(null);
   const [txError, setTxError] = useState('');
+
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(true);
+
+  const [profileUsername, setProfileUsername] = useState('');
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileError, setProfileError] = useState('');
+  const [profileSuccess, setProfileSuccess] = useState('');
+
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState('');
 
   const getUserLabel = useCallback((userId: string | null) => {
     if (!userId) return '-';
@@ -185,15 +221,124 @@ export default function AdminPage() {
     }
   }, []);
 
+  const loadNotifications = useCallback(async () => {
+    setNotificationsLoading(true);
+    try {
+      const res = await fetch('/api/notifications?limit=100');
+      const data = await res.json();
+      if (!isMounted.current) return;
+      if (data.success) setNotifications(data.data.notifications);
+    } finally {
+      if (isMounted.current) setNotificationsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     isMounted.current = true;
     loadAccounts();
     loadTransactions();
     loadOverview();
+    loadNotifications();
     return () => {
       isMounted.current = false;
     };
-  }, [loadAccounts, loadTransactions, loadOverview]);
+  }, [loadAccounts, loadTransactions, loadOverview, loadNotifications]);
+
+  useEffect(() => {
+    if (user) setProfileUsername(user.username);
+  }, [user]);
+
+  const handleNotificationClick = (notification: AppNotification) => {
+    if (!notification.read) {
+      setNotifications((current) =>
+        current.map((item) => (item.id === notification.id ? { ...item, read: true } : item))
+      );
+      fetch(`/api/notifications/${notification.id}`, { method: 'PATCH' }).catch(() => {});
+    }
+    if (notification.link) router.push(notification.link);
+  };
+
+  const handleMarkAllNotificationsRead = async () => {
+    setNotifications((current) => current.map((item) => ({ ...item, read: true })));
+    try {
+      await fetch('/api/notifications/mark-all-read', { method: 'PATCH' });
+    } catch {
+      // Non-critical — a stale unread state self-corrects on next reload.
+    }
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    setProfileSaving(true);
+    setProfileError('');
+    setProfileSuccess('');
+    try {
+      const { error: updateError } = await supabaseRef.current
+        .from('profiles')
+        .update({ username: profileUsername.trim() })
+        .eq('id', user.id);
+      if (updateError) throw updateError;
+      if (!isMounted.current) return;
+      setProfileSuccess(lang === 'en' ? 'Profile updated.' : 'Profil berhasil diperbarui.');
+    } catch {
+      if (isMounted.current) setProfileError(lang === 'en' ? 'Failed to update profile.' : 'Gagal memperbarui profil.');
+    } finally {
+      if (isMounted.current) setProfileSaving(false);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError('');
+    setPasswordSuccess('');
+
+    if (newPassword.length < 6) {
+      setPasswordError(lang === 'en' ? 'Password must be at least 6 characters.' : 'Kata sandi minimal 6 karakter.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError(lang === 'en' ? 'Passwords do not match.' : 'Kata sandi tidak cocok.');
+      return;
+    }
+
+    setPasswordSaving(true);
+    try {
+      const { error: updateError } = await supabaseRef.current.auth.updateUser({ password: newPassword });
+      if (updateError) throw updateError;
+      setPasswordSuccess(lang === 'en' ? 'Password updated.' : 'Kata sandi berhasil diperbarui.');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch {
+      setPasswordError(lang === 'en' ? 'Failed to update password.' : 'Gagal memperbarui kata sandi.');
+    } finally {
+      setPasswordSaving(false);
+    }
+  };
+
+  interface ActivityItem {
+    id: string;
+    title: string;
+    createdAt: string;
+  }
+
+  const activityItems: ActivityItem[] = [
+    ...accounts.map((a) => ({
+      id: `account-${a.id}`,
+      title: lang === 'en' ? `New account: ${a.full_name} (${a.role})` : `Akun baru: ${a.full_name} (${a.role})`,
+      createdAt: a.created_at || '',
+    })),
+    ...transactions.map((tx) => ({
+      id: `tx-${tx.id}`,
+      title: lang === 'en'
+        ? `Transaction: ${tx.commodity} (${tx.status})`
+        : `Transaksi: ${tx.commodity} (${tx.status})`,
+      createdAt: tx.created_at,
+    })),
+  ]
+    .filter((item) => item.createdAt)
+    .sort((a, b) => (a.createdAt > b.createdAt ? -1 : 1))
+    .slice(0, 30);
 
   const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -819,6 +964,175 @@ export default function AdminPage() {
 
       {activeTab === 'market-intelligence' && <MarketIntelligencePanel />}
       {activeTab === 'esg' && <EsgReportPanel />}
+      {activeTab === 'regional-analytics' && <RegionalAnalyticsPanel />}
+
+      {activeTab === 'activity' && (
+        <div className="rounded-xl border border-surface-200 bg-white p-5">
+          <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-gray-900">
+            <Clock className="h-4 w-4 text-primary-700" />
+            {lang === 'en' ? 'Recent platform activity' : 'Aktivitas platform terbaru'}
+          </h2>
+          {accountsLoading || transactionsLoading ? (
+            <Spinner size="sm" />
+          ) : activityItems.length === 0 ? (
+            <p className="text-sm text-surface-400">{lang === 'en' ? 'No activity yet.' : 'Belum ada aktivitas.'}</p>
+          ) : (
+            <div className="space-y-3">
+              {activityItems.map((item) => (
+                <div key={item.id} className="flex items-start gap-3 border-b border-surface-100 pb-3 last:border-0 last:pb-0">
+                  <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary-500" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{item.title}</p>
+                    <p className="text-xs text-surface-400">{formatTimeAgo(item.createdAt, lang)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'notifications' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="flex items-center gap-1.5 text-sm font-semibold text-gray-900">
+              <Bell className="h-4 w-4 text-primary-700" />
+              {lang === 'en' ? 'Notifications' : 'Notifikasi'}
+            </h2>
+            {notifications.some((n) => !n.read) && (
+              <button
+                type="button"
+                onClick={handleMarkAllNotificationsRead}
+                className="flex items-center gap-1.5 rounded-lg border border-surface-200 bg-white px-3 py-1.5 text-xs font-medium text-primary-700 hover:bg-primary-50"
+              >
+                <CheckCheck className="h-3.5 w-3.5" />
+                {lang === 'en' ? 'Mark all read' : 'Tandai semua dibaca'}
+              </button>
+            )}
+          </div>
+
+          {notificationsLoading ? (
+            <Spinner size="sm" />
+          ) : notifications.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-surface-300 bg-white py-10 text-center text-sm text-surface-400">
+              {lang === 'en' ? 'No notifications yet.' : 'Belum ada notifikasi.'}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {notifications.map((n) => (
+                <button
+                  key={n.id}
+                  type="button"
+                  onClick={() => handleNotificationClick(n)}
+                  className={`flex w-full items-start gap-3 rounded-lg border border-surface-100 px-4 py-3 text-left text-sm transition-colors hover:bg-surface-50 ${
+                    !n.read ? 'bg-primary-50/50' : 'bg-white'
+                  }`}
+                >
+                  <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${!n.read ? 'bg-primary-600' : 'bg-transparent'}`} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-medium text-gray-900">{n.title}</span>
+                    {n.body && <span className="mt-0.5 block text-xs text-surface-600">{n.body}</span>}
+                    <span className="mt-1 block text-[11px] text-surface-400">{formatTimeAgo(n.created_at, lang)}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'profile' && user && (
+        <div className="max-w-2xl space-y-4">
+          <div className="rounded-xl border border-surface-200 bg-white p-5">
+            <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <dt className="flex items-center gap-1.5 text-xs font-medium text-surface-400">
+                  <Mail className="h-3.5 w-3.5" />
+                  {lang === 'en' ? 'Email' : 'Email'}
+                </dt>
+                <dd className="mt-1 text-sm text-gray-900">{user.email}</dd>
+              </div>
+              <div>
+                <dt className="flex items-center gap-1.5 text-xs font-medium text-surface-400">
+                  <Shield className="h-3.5 w-3.5" />
+                  {lang === 'en' ? 'Role' : 'Peran'}
+                </dt>
+                <dd className="mt-1 text-sm text-gray-900">{t(`roles.${user.role}`)}</dd>
+              </div>
+            </dl>
+          </div>
+
+          <form onSubmit={handleSaveProfile} className="space-y-4 rounded-xl border border-surface-200 bg-white p-5">
+            <h2 className="flex items-center gap-1.5 text-sm font-semibold text-gray-900">
+              <UserIcon className="h-4 w-4 text-primary-700" />
+              {lang === 'en' ? 'Edit profile' : 'Ubah profil'}
+            </h2>
+            <Input
+              label={lang === 'en' ? 'Username' : 'Nama pengguna'}
+              value={profileUsername}
+              onChange={(e) => setProfileUsername(e.target.value)}
+              required
+            />
+            {profileError && <p className="text-sm text-red-600">{profileError}</p>}
+            {profileSuccess && <p className="text-sm text-green-600">{profileSuccess}</p>}
+            <Button type="submit" size="sm" disabled={profileSaving}>
+              {profileSaving ? <Spinner size="sm" /> : (lang === 'en' ? 'Save changes' : 'Simpan perubahan')}
+            </Button>
+          </form>
+        </div>
+      )}
+
+      {activeTab === 'settings' && (
+        <div className="max-w-2xl space-y-4">
+          <div className="flex items-center justify-between rounded-xl border border-surface-200 bg-white p-5">
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-primary-50 p-2 text-primary-700">
+                <Languages className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-900">{lang === 'en' ? 'Language' : 'Bahasa'}</p>
+                <p className="text-xs text-surface-500">
+                  {lang === 'en' ? 'Choose the display language for the app.' : 'Pilih bahasa tampilan aplikasi.'}
+                </p>
+              </div>
+            </div>
+            <LanguageToggle />
+          </div>
+
+          <form onSubmit={handleChangePassword} className="space-y-4 rounded-xl border border-surface-200 bg-white p-5">
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-primary-50 p-2 text-primary-700">
+                <KeyRound className="h-4 w-4" />
+              </div>
+              <div>
+                <h2 className="text-sm font-medium text-gray-900">{lang === 'en' ? 'Change password' : 'Ubah kata sandi'}</h2>
+                <p className="text-xs text-surface-500">
+                  {lang === 'en' ? 'Use a strong password you don’t use elsewhere.' : 'Gunakan kata sandi kuat yang tidak dipakai di tempat lain.'}
+                </p>
+              </div>
+            </div>
+            <Input
+              type="password"
+              label={lang === 'en' ? 'New password' : 'Kata sandi baru'}
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              required
+            />
+            <Input
+              type="password"
+              label={lang === 'en' ? 'Confirm new password' : 'Konfirmasi kata sandi baru'}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+            />
+            {passwordError && <p className="text-sm text-red-600">{passwordError}</p>}
+            {passwordSuccess && <p className="text-sm text-green-600">{passwordSuccess}</p>}
+            <Button type="submit" size="sm" disabled={passwordSaving}>
+              {passwordSaving ? <Spinner size="sm" /> : (lang === 'en' ? 'Update password' : 'Perbarui kata sandi')}
+            </Button>
+          </form>
+        </div>
+      )}
     </div>
   );
 }
