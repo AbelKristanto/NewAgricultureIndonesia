@@ -104,9 +104,9 @@ describe('API Helpers', () => {
   });
 
   describe('isRequestPermittedForApi()', () => {
-    it('should allow government to run farmer and buyer analyses according to RBAC', () => {
-      expect(isRequestPermittedForApi({ userId: 'gov-1', userRole: 'government' }, '/api/ai/farmer')).toBe(true);
-      expect(isRequestPermittedForApi({ userId: 'gov-1', userRole: 'government' }, '/api/ai/buyer')).toBe(true);
+    it('should not allow government to run farmer and buyer analyses (not in the government spec)', () => {
+      expect(isRequestPermittedForApi({ userId: 'gov-1', userRole: 'government' }, '/api/ai/farmer')).toBe(false);
+      expect(isRequestPermittedForApi({ userId: 'gov-1', userRole: 'government' }, '/api/ai/buyer')).toBe(false);
     });
 
     it('should block roles from APIs outside their permissions', () => {

@@ -122,10 +122,10 @@ describe('useDashboardData - role-based metric selection', () => {
     expect(perms.metricCards).toEqual(['buyerAnalyses', 'transactions', 'matchingAnalyses', 'chatConversations']);
   });
 
-  it('government role fetches policyAnalyses, farmerAnalyses, buyerAnalyses, transactions', async () => {
+  it('government role fetches policyAnalyses', async () => {
     const { getPermissions } = await import('@/lib/rbac');
     const perms = getPermissions('government');
-    expect(perms.metricCards).toEqual(['policyAnalyses', 'farmerAnalyses', 'buyerAnalyses', 'transactions']);
+    expect(perms.metricCards).toEqual(['policyAnalyses']);
   });
 
   it('supplier role fetches matchingAnalyses, transactions, chatConversations', async () => {
