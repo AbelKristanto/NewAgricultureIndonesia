@@ -19,8 +19,7 @@ export default function Logo({
   variant = 'full',
 }: LogoProps) {
   const isMark = variant === 'mark';
-  // Always use logo-mark.png (without white background)
-  const src = '/logo-mark.png';
+  const src = isMark ? '/logo-mark.png' : '/logo.png';
 
   return (
     <div
