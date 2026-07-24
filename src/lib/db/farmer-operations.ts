@@ -9,6 +9,7 @@ import {
   LogisticsCheckpoint,
 } from '@/types/farmer-operations';
 import { Transaction } from '@/types/transaction';
+import { getUserTransactions } from '@/lib/db/transactions';
 
 /**
  * Marks any existing 'current' checkpoint as 'done' and appends the new
@@ -62,6 +63,49 @@ export async function getFarmerOperations(
 
   return {
     financing: (financingResult.data || []) as FarmerFinancingOpportunity[],
+    logistics: (logisticsResult.data || []) as FarmerLogisticsPlan[],
+    summaries: (summariesResult.data || []) as FarmerActivitySummary[],
+  };
+}
+
+/**
+ * Counterparty view of farmer operations (buyer, logistics, finance): these
+ * roles aren't a farmer_id on any of these tables, so the farmer-scoped query
+ * would always return nothing. Instead, scope logistics plans and activity
+ * summaries to transactions the caller is actually a party to. Financing
+ * opportunities stay empty — that's a farmer's private search against lenders,
+ * not something a counterparty should see per-farmer (finance gets its own
+ * aggregate view via getFinanceableTransactions/getMyFinancingOffers).
+ */
+export async function getFarmerOperationsForCounterparty(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<FarmerOperationsData> {
+  const transactions = await getUserTransactions(supabase, userId, 100);
+  const transactionIds = transactions.map((t) => t.id);
+
+  if (transactionIds.length === 0) {
+    return { financing: [], logistics: [], summaries: [] };
+  }
+
+  const [logisticsResult, summariesResult] = await Promise.all([
+    supabase
+      .from('farmer_logistics_plans')
+      .select('*')
+      .in('transaction_id', transactionIds)
+      .order('pickup_time', { ascending: true }),
+    supabase
+      .from('farmer_activity_summaries')
+      .select('*')
+      .in('transaction_id', transactionIds)
+      .order('updated_at', { ascending: false }),
+  ]);
+
+  if (logisticsResult.error) throw logisticsResult.error;
+  if (summariesResult.error) throw summariesResult.error;
+
+  return {
+    financing: [],
     logistics: (logisticsResult.data || []) as FarmerLogisticsPlan[],
     summaries: (summariesResult.data || []) as FarmerActivitySummary[],
   };

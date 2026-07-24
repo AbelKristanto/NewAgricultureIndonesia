@@ -366,6 +366,8 @@ const en = {
     newChat: 'New Chat',
     noHistory: 'No history yet',
     conversations: 'Conversations',
+    expandSidebar: 'Expand sidebar',
+    collapseSidebar: 'Collapse sidebar',
   },
 };
 

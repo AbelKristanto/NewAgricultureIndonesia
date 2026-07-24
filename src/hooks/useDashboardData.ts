@@ -447,9 +447,11 @@ export async function fetchRecentActivity(
     );
   }
 
-  // Execute all activity queries in parallel (second round-trip)
-  const allResults = await Promise.all(activityFetchers);
-  const allItems = allResults.flat();
+  // Execute all activity queries in parallel (second round-trip). One source
+  // failing (a transient network blip, an aborted in-flight request) shouldn't
+  // blank out every other source, so settle instead of failing all-or-nothing.
+  const allResults = await Promise.allSettled(activityFetchers);
+  const allItems = allResults.flatMap((result) => (result.status === 'fulfilled' ? result.value : []));
 
   // Sort by created_at descending and take top 5
   allItems.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());

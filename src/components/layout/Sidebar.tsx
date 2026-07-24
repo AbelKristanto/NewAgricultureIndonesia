@@ -9,7 +9,9 @@ import { getPermissions } from '@/lib/rbac';
 import Logo from '@/components/brand/Logo';
 import { Home, Wheat, ShoppingCart, Building2, MessageSquare, Handshake, CloudSun, FileSignature, FlaskConical, ChevronLeft, ChevronRight, Route, Map, Sprout, History, CalendarDays, Wallet, Clock, Bell, User, Settings, LifeBuoy, Users, Warehouse, ScrollText, Leaf, Globe2, TrendingUp, ShieldAlert, Camera, Globe, Landmark } from 'lucide-react';
 import clsx from 'clsx';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+
+const SIDEBAR_COLLAPSED_KEY = 'serenagri-sidebar-collapsed';
 
 const primaryNav = [
   { href: '/dashboard', icon: Home, labelKey: 'nav.dashboard' },
@@ -48,11 +50,35 @@ const secondaryNav = [
 ];
 
 export default function Sidebar() {
+  // Start expanded on the server render (SSR-safe default); the effect below
+  // reconciles this with the user's saved preference or the viewport's tier
+  // (tablet widths default to collapsed so the rail doesn't crowd an iPad).
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
   const { t } = useLanguage();
   const { user } = useAuth();
   const { role } = useRole();
+
+  // Reconciling with localStorage/window is only possible post-mount (SSR has
+  // neither), so this one-time sync read on mount is the legitimate exception to the rule.
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    const saved = window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+    if (saved !== null) {
+      setCollapsed(saved === 'true');
+    } else {
+      setCollapsed(window.innerWidth < 1024);
+    }
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  const toggleCollapsed = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
+      return next;
+    });
+  };
 
   const permittedPages = useMemo(() => getPermissions(role).pages, [role]);
 
@@ -144,7 +170,9 @@ export default function Sidebar() {
 
       {/* Collapse toggle */}
       <button
-        onClick={() => setCollapsed(!collapsed)}
+        onClick={toggleCollapsed}
+        aria-label={collapsed ? t('common.expandSidebar') : t('common.collapseSidebar')}
+        title={collapsed ? t('common.expandSidebar') : t('common.collapseSidebar')}
         className="flex items-center justify-center p-3 border-t border-surface-200 text-surface-400 hover:text-gray-700 transition-colors"
       >
         {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}

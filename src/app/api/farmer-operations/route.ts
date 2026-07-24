@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { getFarmerOperations } from '@/lib/db/farmer-operations';
+import { getFarmerOperations, getFarmerOperationsForCounterparty } from '@/lib/db/farmer-operations';
 import { enrichCheckpointsWithSignedUrls } from '@/lib/storage';
 import {
-  createForbiddenResponse,
   createUnauthorizedResponse,
   getRequestContext,
+  isRequestPermittedForApi,
+  createForbiddenResponse,
 } from '@/lib/api-helpers';
 
 export async function GET(request: Request) {
@@ -13,14 +14,15 @@ export async function GET(request: Request) {
   if (!ctx) {
     return createUnauthorizedResponse();
   }
-
-  if (!['farmer', 'government'].includes(ctx.userRole)) {
-    return createForbiddenResponse('Only farmers and government monitors can view farmer operations');
+  if (!isRequestPermittedForApi(ctx, '/api/farmer-operations')) {
+    return createForbiddenResponse();
   }
 
   try {
     const supabase = createAdminClient();
-    const data = await getFarmerOperations(supabase, ctx.userId);
+    const data = ctx.userRole === 'farmer'
+      ? await getFarmerOperations(supabase, ctx.userId)
+      : await getFarmerOperationsForCounterparty(supabase, ctx.userId);
     data.logistics = await Promise.all(
       data.logistics.map(async (plan) => ({
         ...plan,

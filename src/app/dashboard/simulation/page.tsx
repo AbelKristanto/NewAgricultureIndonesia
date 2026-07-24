@@ -58,6 +58,7 @@ export default function SimulationPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    isMounted.current = true;
     const abortController = new AbortController();
 
     fetch('/api/admin/simulation', { signal: abortController.signal })

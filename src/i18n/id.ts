@@ -366,6 +366,8 @@ const id = {
     newChat: 'Chat Baru',
     noHistory: 'Belum ada riwayat',
     conversations: 'Percakapan',
+    expandSidebar: 'Perluas sidebar',
+    collapseSidebar: 'Ciutkan sidebar',
   },
 };
 
