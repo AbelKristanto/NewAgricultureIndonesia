@@ -65,6 +65,22 @@ function FitToRoute({ bounds }: { bounds: LatLngBoundsExpression }) {
   return null;
 }
 
+// Leaflet caches its container size at mount and never re-measures on its
+// own when a CSS-driven layout change (e.g. the sidebar auto-collapsing on
+// tablet widths) resizes the map's parent without a window resize event —
+// this leaves a gray dead-zone where the map's tiles stop short of the new
+// container width. Watch the container and nudge Leaflet to re-measure.
+function InvalidateSizeOnResize() {
+  const map = useMap();
+  useEffect(() => {
+    const container = map.getContainer();
+    const observer = new ResizeObserver(() => map.invalidateSize());
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [map]);
+  return null;
+}
+
 export default function DeliveryMapInner({ plan }: DeliveryMapProps) {
   const { lang } = useLanguage();
 
@@ -150,6 +166,7 @@ export default function DeliveryMapInner({ plan }: DeliveryMapProps) {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
         <FitToRoute bounds={bounds} />
+        <InvalidateSizeOnResize />
         <Polyline
           positions={routeLine}
           pathOptions={{
