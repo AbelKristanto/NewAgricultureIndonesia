@@ -10,7 +10,8 @@ import Textarea from '@/components/ui/Textarea';
 import Spinner from '@/components/ui/Spinner';
 import Badge from '@/components/ui/Badge';
 import { FarmerSubsidy } from '@/types/subsidies';
-import { Landmark, Plus, Pencil, Trash2 } from 'lucide-react';
+import { buildSubsidyReportCsv, buildSubsidyReportPdf } from '@/lib/report-export';
+import { Landmark, Plus, Pencil, Trash2, Download, FileText } from 'lucide-react';
 
 const EMPTY_FORM = {
   programName: '',
@@ -174,10 +175,32 @@ export default function SubsidiesPage() {
               : 'Lacak program subsidi pemerintah atau lembaga yang Anda ajukan atau terima.'}
           </p>
         </div>
-        <Button type="button" size="sm" onClick={openCreateForm}>
-          <Plus className="mr-1 h-4 w-4" />
-          {lang === 'en' ? 'Add subsidy' : 'Tambah Subsidi'}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            disabled={subsidies.length === 0}
+            onClick={() => buildSubsidyReportCsv(subsidies)}
+          >
+            <Download className="mr-1 h-4 w-4" />
+            {lang === 'en' ? 'Download CSV' : 'Unduh CSV'}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            disabled={subsidies.length === 0}
+            onClick={() => buildSubsidyReportPdf(subsidies, lang)}
+          >
+            <FileText className="mr-1 h-4 w-4" />
+            {lang === 'en' ? 'Download PDF' : 'Unduh PDF'}
+          </Button>
+          <Button type="button" size="sm" onClick={openCreateForm}>
+            <Plus className="mr-1 h-4 w-4" />
+            {lang === 'en' ? 'Add subsidy' : 'Tambah Subsidi'}
+          </Button>
+        </div>
       </div>
 
       {error && (

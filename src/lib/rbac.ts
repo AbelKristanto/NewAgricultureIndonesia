@@ -44,10 +44,10 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
   },
   supplier: {
     homePage: '/dashboard/matching',
-    pages: ['/dashboard', '/dashboard/matching', '/dashboard/transactions', '/dashboard/chat', '/dashboard/activity', '/dashboard/notifications', '/dashboard/profile', '/dashboard/settings', '/dashboard/help', '/dashboard/community', '/dashboard/warehouse', '/dashboard/market-intelligence'],
-    apiRoutes: ['/api/ai/chat', '/api/ai/matching', '/api/transactions', '/api/listings', '/api/notifications', '/api/community', '/api/warehouses', '/api/ai/market-intelligence'],
+    pages: ['/dashboard', '/dashboard/matching', '/dashboard/transactions', '/dashboard/chat', '/dashboard/activity', '/dashboard/notifications', '/dashboard/profile', '/dashboard/settings', '/dashboard/help', '/dashboard/community', '/dashboard/warehouse', '/dashboard/market-intelligence', '/dashboard/supplies'],
+    apiRoutes: ['/api/ai/chat', '/api/ai/matching', '/api/transactions', '/api/listings', '/api/notifications', '/api/community', '/api/warehouses', '/api/ai/market-intelligence', '/api/supplier-products'],
     metricCards: ['matchingAnalyses', 'transactions', 'chatConversations'],
-    quickActions: ['/dashboard/matching', '/dashboard/transactions', '/dashboard/chat', '/dashboard/warehouse'],
+    quickActions: ['/dashboard/matching', '/dashboard/transactions', '/dashboard/chat', '/dashboard/warehouse', '/dashboard/supplies'],
   },
   logistics: {
     homePage: '/dashboard/transactions',

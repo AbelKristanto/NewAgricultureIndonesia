@@ -36,6 +36,7 @@ const en = {
     institutionalFinancial: 'Institutional Financial Summary',
     subsidies: 'Subsidy Tracking',
     inputPlanning: 'Input Planning',
+    supplies: 'Product Catalog',
   },
   login: {
     title: 'Sign In to Serenagri AI',

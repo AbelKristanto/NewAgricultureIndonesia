@@ -131,13 +131,13 @@ describe('RBAC Permission Configuration', () => {
 
     it('should have correct pages', () => {
       expect(ROLE_PERMISSIONS.supplier.pages).toEqual([
-        '/dashboard', '/dashboard/matching', '/dashboard/transactions', '/dashboard/chat', '/dashboard/activity', '/dashboard/notifications', '/dashboard/profile', '/dashboard/settings', '/dashboard/help', '/dashboard/community', '/dashboard/warehouse', '/dashboard/market-intelligence',
+        '/dashboard', '/dashboard/matching', '/dashboard/transactions', '/dashboard/chat', '/dashboard/activity', '/dashboard/notifications', '/dashboard/profile', '/dashboard/settings', '/dashboard/help', '/dashboard/community', '/dashboard/warehouse', '/dashboard/market-intelligence', '/dashboard/supplies',
       ]);
     });
 
     it('should have correct API routes', () => {
       expect(ROLE_PERMISSIONS.supplier.apiRoutes).toEqual([
-        '/api/ai/chat', '/api/ai/matching', '/api/transactions', '/api/listings', '/api/notifications', '/api/community', '/api/warehouses', '/api/ai/market-intelligence',
+        '/api/ai/chat', '/api/ai/matching', '/api/transactions', '/api/listings', '/api/notifications', '/api/community', '/api/warehouses', '/api/ai/market-intelligence', '/api/supplier-products',
       ]);
     });
 
@@ -147,7 +147,7 @@ describe('RBAC Permission Configuration', () => {
 
     it('should have correct quick actions', () => {
       expect(ROLE_PERMISSIONS.supplier.quickActions).toEqual([
-        '/dashboard/matching', '/dashboard/transactions', '/dashboard/chat', '/dashboard/warehouse',
+        '/dashboard/matching', '/dashboard/transactions', '/dashboard/chat', '/dashboard/warehouse', '/dashboard/supplies',
       ]);
     });
 

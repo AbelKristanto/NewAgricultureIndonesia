@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRole } from '@/contexts/RoleContext';
 import { getPermissions } from '@/lib/rbac';
 import Logo from '@/components/brand/Logo';
-import { Home, Wheat, ShoppingCart, Building2, MessageSquare, Handshake, CloudSun, FileSignature, FlaskConical, ChevronLeft, ChevronRight, Route, Map, Sprout, History, CalendarDays, Wallet, Clock, Bell, User, Settings, LifeBuoy, Users, Warehouse, ScrollText, Leaf, Globe2, TrendingUp, ShieldAlert, Camera, Globe, Landmark, HandCoins, ClipboardList } from 'lucide-react';
+import { Home, Wheat, ShoppingCart, Building2, MessageSquare, Handshake, CloudSun, FileSignature, FlaskConical, ChevronLeft, ChevronRight, Route, Map, Sprout, History, CalendarDays, Wallet, Clock, Bell, User, Settings, LifeBuoy, Users, Warehouse, ScrollText, Leaf, Globe2, TrendingUp, ShieldAlert, Camera, Globe, Landmark, HandCoins, ClipboardList, Package } from 'lucide-react';
 import clsx from 'clsx';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -35,6 +35,7 @@ const secondaryNav = [
   { href: '/dashboard/simulation', icon: FlaskConical, labelKey: 'nav.simulation' },
   { href: '/dashboard/community', icon: Users, labelKey: 'nav.community' },
   { href: '/dashboard/warehouse', icon: Warehouse, labelKey: 'nav.warehouse' },
+  { href: '/dashboard/supplies', icon: Package, labelKey: 'nav.supplies' },
   { href: '/dashboard/contracts', icon: ScrollText, labelKey: 'nav.contracts' },
   { href: '/dashboard/sustainability', icon: Leaf, labelKey: 'nav.sustainability' },
   { href: '/dashboard/esg-report', icon: Globe2, labelKey: 'nav.esgReport' },

@@ -4,8 +4,10 @@ import { useEffect, useRef, useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { COMMODITIES } from '@/lib/constants';
 import Spinner from '@/components/ui/Spinner';
+import Button from '@/components/ui/Button';
 import { InstitutionalFinancialSummary } from '@/lib/db/institutional-financials';
-import { Landmark } from 'lucide-react';
+import { buildInstitutionalFinancialReportCsv, buildInstitutionalFinancialReportPdf } from '@/lib/report-export';
+import { Landmark, Download, FileText } from 'lucide-react';
 
 function formatCurrency(value: number, lang: string) {
   return new Intl.NumberFormat(lang === 'en' ? 'en-US' : 'id-ID', {
@@ -60,16 +62,40 @@ export default function InstitutionalFinancialPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900">
-          <Landmark className="h-6 w-6 text-primary-700" />
-          {lang === 'en' ? 'Institutional Financial & Production Summary' : 'Ringkasan Keuangan & Produksi Institusi'}
-        </h1>
-        <p className="mt-1 text-surface-500">
-          {lang === 'en'
-            ? 'Platform-wide income, expenses, and production volume across all farmers.'
-            : 'Pendapatan, pengeluaran, dan volume produksi seluruh platform dari semua petani.'}
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900">
+            <Landmark className="h-6 w-6 text-primary-700" />
+            {lang === 'en' ? 'Institutional Financial & Production Summary' : 'Ringkasan Keuangan & Produksi Institusi'}
+          </h1>
+          <p className="mt-1 text-surface-500">
+            {lang === 'en'
+              ? 'Platform-wide income, expenses, and production volume across all farmers.'
+              : 'Pendapatan, pengeluaran, dan volume produksi seluruh platform dari semua petani.'}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            disabled={!summary}
+            onClick={() => summary && buildInstitutionalFinancialReportCsv(summary)}
+          >
+            <Download className="mr-1 h-4 w-4" />
+            {lang === 'en' ? 'Download CSV' : 'Unduh CSV'}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            disabled={!summary}
+            onClick={() => summary && buildInstitutionalFinancialReportPdf(summary, lang)}
+          >
+            <FileText className="mr-1 h-4 w-4" />
+            {lang === 'en' ? 'Download PDF' : 'Unduh PDF'}
+          </Button>
+        </div>
       </div>
 
       {error && (

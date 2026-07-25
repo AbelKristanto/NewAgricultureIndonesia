@@ -1,7 +1,9 @@
 import jsPDF from 'jspdf';
 import { HarvestRecord, YieldUnit } from '@/types/harvest-records';
 import { LandPlot } from '@/types/land-plots';
-import { COMMODITIES } from '@/lib/constants';
+import { COMMODITIES, SUBSIDY_STATUSES, SUBSIDY_TYPES } from '@/lib/constants';
+import { InstitutionalFinancialSummary } from '@/lib/db/institutional-financials';
+import { FarmerSubsidy } from '@/types/subsidies';
 
 const YIELD_UNIT_TO_KG: Record<YieldUnit, number> = { kg: 1, ton: 1000, quintal: 100 };
 
@@ -212,4 +214,147 @@ export function buildProductionReportPdf(records: HarvestRecord[], landPlots: La
   }
 
   doc.save('laporan-produksi.pdf');
+}
+
+function getCommodityLabelStandalone(value: string, lang: 'en' | 'id'): string {
+  return COMMODITIES.find((c) => c.value === value)?.[lang === 'en' ? 'labelEn' : 'labelId'] || value;
+}
+
+export function buildInstitutionalFinancialReportCsv(summary: InstitutionalFinancialSummary): void {
+  const header = ['Komoditas', 'Pendapatan', 'Biaya', 'Nilai Transaksi Pasar', 'Volume (kg)'];
+  const rows = summary.byCommodity.map((c) => [c.commodity, c.revenue, c.cost, c.transactionValue, c.volume]);
+  const csvContent = [header, ...rows].map((row) => row.map(escapeCsvCell).join(',')).join('\n');
+  triggerDownload(csvContent, 'ringkasan-keuangan-institusi.csv', 'text/csv;charset=utf-8;');
+}
+
+export function buildInstitutionalFinancialReportPdf(summary: InstitutionalFinancialSummary, lang: 'en' | 'id'): void {
+  const doc = new jsPDF();
+  const isEn = lang === 'en';
+  let y = 15;
+
+  doc.setFontSize(16);
+  doc.text(isEn ? 'Institutional Financial & Production Summary' : 'Ringkasan Keuangan & Produksi Institusi', 14, y);
+  y += 6;
+  doc.setFontSize(10);
+  doc.text(`${isEn ? 'Generated' : 'Dibuat'}: ${new Date().toLocaleDateString()}`, 14, y);
+  y += 10;
+
+  doc.setFontSize(12);
+  doc.text(isEn ? 'Summary' : 'Ringkasan', 14, y);
+  y += 6;
+  doc.setFontSize(10);
+  [
+    `${isEn ? 'Platform revenue' : 'Pendapatan platform'}: ${formatCurrencyPlain(summary.totalRevenue)}`,
+    `${isEn ? 'Platform expenses' : 'Pengeluaran platform'}: ${formatCurrencyPlain(summary.totalExpense)}`,
+    `${isEn ? 'Estimated profit' : 'Estimasi keuntungan'}: ${formatCurrencyPlain(summary.estimatedProfit)}`,
+    `${isEn ? 'Profit margin' : 'Margin keuntungan'}: ${summary.margin.toFixed(0)}%`,
+    `${isEn ? 'Total production volume' : 'Total volume produksi'}: ${summary.totalProductionVolume.toLocaleString('id-ID')} kg`,
+  ].forEach((line) => {
+    doc.text(line, 14, y);
+    y += 6;
+  });
+  y += 4;
+
+  doc.setFontSize(12);
+  doc.text(isEn ? 'Revenue by Commodity' : 'Pendapatan per Komoditas', 14, y);
+  y += 8;
+  const revenueSeries = summary.byCommodity.map((c) => ({
+    label: getCommodityLabelStandalone(c.commodity, lang),
+    value: c.revenue,
+  }));
+  y = revenueSeries.length > 0 ? drawBarChart(doc, revenueSeries, y) : y;
+
+  y += 8;
+  if (y > 240) {
+    doc.addPage();
+    y = 15;
+  }
+
+  doc.setFontSize(12);
+  doc.text(isEn ? 'Production Volume by Commodity (kg)' : 'Volume Produksi per Komoditas (kg)', 14, y);
+  y += 8;
+  const volumeSeries = summary.byCommodity.map((c) => ({
+    label: getCommodityLabelStandalone(c.commodity, lang),
+    value: c.volume,
+  }));
+  if (volumeSeries.length > 0) {
+    drawBarChart(doc, volumeSeries, y);
+  } else {
+    doc.setFontSize(9);
+    doc.text(isEn ? 'Not enough data' : 'Data belum cukup', 14, y);
+  }
+
+  doc.save('ringkasan-keuangan-institusi.pdf');
+}
+
+export function buildSubsidyReportCsv(subsidies: FarmerSubsidy[]): void {
+  const header = ['Program', 'Lembaga', 'Jenis', 'Status', 'Nominal', 'Tanggal Pengajuan', 'Tanggal Pencairan'];
+  const rows = subsidies.map((s) => [
+    s.program_name,
+    s.institution_name,
+    s.subsidy_type,
+    s.status,
+    s.amount ?? '',
+    s.application_date ?? '',
+    s.disbursement_date ?? '',
+  ]);
+  const csvContent = [header, ...rows].map((row) => row.map(escapeCsvCell).join(',')).join('\n');
+  triggerDownload(csvContent, 'pelacakan-subsidi.csv', 'text/csv;charset=utf-8;');
+}
+
+export function buildSubsidyReportPdf(subsidies: FarmerSubsidy[], lang: 'en' | 'id'): void {
+  const doc = new jsPDF();
+  const isEn = lang === 'en';
+  let y = 15;
+
+  doc.setFontSize(16);
+  doc.text(isEn ? 'Subsidy Tracking Report' : 'Laporan Pelacakan Subsidi', 14, y);
+  y += 6;
+  doc.setFontSize(10);
+  doc.text(`${isEn ? 'Generated' : 'Dibuat'}: ${new Date().toLocaleDateString()}`, 14, y);
+  y += 10;
+
+  const totalAmount = subsidies.reduce((sum, s) => sum + (s.amount || 0), 0);
+  doc.setFontSize(12);
+  doc.text(isEn ? 'Summary' : 'Ringkasan', 14, y);
+  y += 6;
+  doc.setFontSize(10);
+  doc.text(`${isEn ? 'Total records' : 'Total catatan'}: ${subsidies.length}`, 14, y);
+  y += 6;
+  doc.text(`${isEn ? 'Total known amount' : 'Total nominal diketahui'}: ${formatCurrencyPlain(totalAmount)}`, 14, y);
+  y += 10;
+
+  doc.setFontSize(12);
+  doc.text(isEn ? 'Records' : 'Catatan', 14, y);
+  y += 6;
+  doc.setFontSize(8);
+  const colX = [14, 60, 105, 135, 165];
+  const headers = isEn
+    ? ['Program', 'Institution', 'Type', 'Status', 'Amount']
+    : ['Program', 'Lembaga', 'Jenis', 'Status', 'Nominal'];
+  headers.forEach((h, i) => doc.text(h, colX[i], y));
+  y += 4;
+  doc.setLineWidth(0.1);
+  doc.line(14, y, 195, y);
+  y += 4;
+
+  subsidies.forEach((s) => {
+    if (y > 270) {
+      doc.addPage();
+      y = 15;
+    }
+    const typeLabel = SUBSIDY_TYPES.find((t) => t.value === s.subsidy_type)?.[lang === 'en' ? 'labelEn' : 'labelId'] || s.subsidy_type;
+    const statusLabel = SUBSIDY_STATUSES.find((st) => st.value === s.status)?.[lang === 'en' ? 'labelEn' : 'labelId'] || s.status;
+    const row = [
+      truncate(s.program_name, 22),
+      truncate(s.institution_name, 18),
+      truncate(typeLabel, 14),
+      truncate(statusLabel, 12),
+      s.amount != null ? formatCurrencyPlain(s.amount) : '-',
+    ];
+    row.forEach((cell, i) => doc.text(String(cell), colX[i], y));
+    y += 6;
+  });
+
+  doc.save('pelacakan-subsidi.pdf');
 }

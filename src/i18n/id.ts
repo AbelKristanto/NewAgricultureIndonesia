@@ -36,6 +36,7 @@ const id = {
     institutionalFinancial: 'Ringkasan Keuangan Institusi',
     subsidies: 'Pelacakan Subsidi',
     inputPlanning: 'Rencana Sarana Produksi',
+    supplies: 'Katalog Produk',
   },
   login: {
     title: 'Masuk ke Serenagri AI',
