@@ -10,6 +10,7 @@ import {
   TransactionParty,
   TransactionStatus,
 } from '@/types/transaction';
+import { FarmerSupplyListing } from '@/types/listings';
 import { COMMODITIES, INDONESIAN_PROVINCES, TRANSACTION_STATUSES } from '@/lib/constants';
 import {
   canManageLogisticsForTransaction,
@@ -79,6 +80,7 @@ export default function TransactionsPage() {
   const [negotiationForm, setNegotiationForm] = useState<NegotiationFormState>(EMPTY_NEGOTIATION_FORM);
 
   const [form, setForm] = useState({
+    farmerId: '',
     commodity: '',
     volume: '',
     volumeUnit: 'tons',
@@ -89,6 +91,7 @@ export default function TransactionsPage() {
     endDate: '',
     note: '',
   });
+  const [supplyListings, setSupplyListings] = useState<FarmerSupplyListing[]>([]);
 
   const selectedTerms = useMemo(
     () => parseTransactionTerms(selectedTx?.terms ?? null),
@@ -175,6 +178,22 @@ export default function TransactionsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requestedTransactionId]);
 
+  // Active farmer supply listings double as the "who am I proposing to"
+  // picker for a new transaction — without a farmerId the transaction is
+  // never visible to any farmer (canAccessTransaction only matches buyer_id/
+  // farmer_id/participants), so this selection is required, not optional.
+  useEffect(() => {
+    if (user?.role !== 'buyer') return;
+    isMounted.current = true;
+    fetch('/api/listings/supply?scope=active')
+      .then((res) => res.json())
+      .then((data) => {
+        if (!isMounted.current) return;
+        if (data.success) setSupplyListings(data.data);
+      })
+      .catch(() => {});
+  }, [user?.role]);
+
   const syncTransactionState = async (nextTransaction: Transaction) => {
     setSelectedTx(nextTransaction);
     await fetchTransactions(abortControllerRef.current?.signal);
@@ -186,6 +205,7 @@ export default function TransactionsPage() {
     setError('');
 
     const input: CreateTransactionInput = {
+      farmerId: form.farmerId,
       commodity: form.commodity,
       volume: Number(form.volume),
       volumeUnit: form.volumeUnit,
@@ -210,6 +230,7 @@ export default function TransactionsPage() {
       if (data.success) {
         setShowForm(false);
         setForm({
+          farmerId: '',
           commodity: '',
           volume: '',
           volumeUnit: 'tons',
@@ -351,6 +372,11 @@ export default function TransactionsPage() {
   const provinceOptions = INDONESIAN_PROVINCES.map((p) => ({
     value: p.value,
     label: lang === 'en' ? p.labelEn : p.labelId,
+  }));
+
+  const farmerOptions = supplyListings.map((listing) => ({
+    value: listing.farmer_id,
+    label: `${getCommodityLabel(listing.commodity)} - ${listing.volume}${listing.volume_unit} • ${getProvinceLabel(listing.region_province)}${listing.region_city ? `, ${listing.region_city}` : ''}`,
   }));
 
   const getNextStatuses = (current: string): TransactionStatus[] => {
@@ -536,6 +562,19 @@ export default function TransactionsPage() {
                 : ['Kosongkan harga kalau masih perlu diskusi.', 'Gunakan tanggal kirim sebagai rentang realistis, bukan janji satu hari.', 'Isi kualitas, kemasan, atau pembayaran di catatan.']}
             />
           </div>
+          <Select
+            id="tx-farmer"
+            label={lang === 'en' ? 'Target farmer (from active supply listings)' : 'Petani tujuan (dari pasokan aktif)'}
+            options={farmerOptions}
+            placeholder={
+              farmerOptions.length === 0
+                ? (lang === 'en' ? 'No active farmer supply listings yet' : 'Belum ada pasokan petani aktif')
+                : t('common.selectPlaceholder')
+            }
+            value={form.farmerId}
+            onChange={(e) => setForm({ ...form, farmerId: e.target.value })}
+            required
+          />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Select
               id="tx-commodity"

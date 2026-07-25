@@ -58,6 +58,13 @@ export async function POST(request: Request) {
     let farmerId = body.farmerId;
     let matchedSupplyListing: Awaited<ReturnType<typeof getSupplyListingById>> = null;
 
+    if (!farmerId && !body.supplyListingId && !body.demandListingId) {
+      return NextResponse.json(
+        { success: false, error: 'farmerId is required so the farmer can see and respond to this transaction' },
+        { status: 400 }
+      );
+    }
+
     if (body.supplyListingId || body.demandListingId) {
       if (!body.supplyListingId || !body.demandListingId) {
         return NextResponse.json(
